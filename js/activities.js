@@ -13,7 +13,7 @@ var K1 = (function () {
   };
   function w(k) { return [P[k].word + ".", "en"]; }
   var ZH = { red: { zh: "红色", py: "hóng sè" }, blue: { zh: "蓝色", py: "lán sè" }, yellow: { zh: "黄色", py: "huáng sè" }, green: { zh: "绿色", py: "lǜ sè" } };
-  var EN_NUM = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  var EN_NUM = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
   var PEOPLE = { mummy: { en: "Mummy", zh: "妈妈" }, daddy: { en: "Daddy", zh: "爸爸" }, grandma: { en: "Grandma", zh: "奶奶" }, grandpa: { en: "Grandpa", zh: "爷爷" } };
   var UI = {
     home: [["Little Garage.", "en"], ["小车库。", "zh"]],

@@ -1,6 +1,6 @@
 /* Offline cache (same pattern as the picture book's sw.js): bump VERSION whenever any file changes. */
-var VERSION = "garage-v1-1";
-var FILES = ["./", "index.html", "css/k1.css", "js/store.js", "js/speech.js", "js/art.js", "js/activities.js", "js/app.js",
+var VERSION = "garage-v2-1";
+var FILES = ["./", "index.html", "css/k1.css", "js/store.js", "js/speech.js", "js/art.js", "js/activities.js", "js/maths.js", "js/app.js",
   "audio/manifest.js", "audio/silence.mp3", "icon.svg", "icon.png", "manifest.webmanifest"];
 /* Precache every recorded clip listed in the manifest, so the whole app works offline from the first visit. */
 try {

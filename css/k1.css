@@ -121,3 +121,44 @@ ruby rt { font-size: 16px; color: var(--soft); font-weight: 400; }
 [hidden] { display: none !important; }
 .sticker-count { position: absolute; top: -6px; right: -10px; min-width: 62px; height: 46px; padding: 0 10px; border-radius: 23px; background: #ff7043; color: #fff; font-size: 28px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 h1 span { font-size: .8em; color: #c62828; }
+/* ---------- maths topics ---------- */
+.truck.row { background: #cfd8dc; border-bottom-color: #4a4f57; }
+.road-row { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 18px 16px; margin: 6px auto 14px; max-width: 1100px; background: #cfd8dc; border-radius: 22px; flex-wrap: wrap; }
+.row-car { border: 0; background: transparent; position: relative; padding: 4px; border-radius: 16px; }
+.row-car .car { width: 150px; }
+.lane .row-car .car { width: 92px; }
+.lane .row-car { min-width: 96px; min-height: 96px; }
+.lane .row-car.next { background: rgba(255,235,59,.55); }
+.lane .row-car.seen { background: rgba(102,187,106,.25); }
+.lane .count-tag { top: -10px; left: 2px; font-size: 30px; }
+.drive-in { animation: drivein .6s ease-out; }
+@keyframes drivein { from { transform: translateX(-160px); opacity: 0; } }
+.car.ghost { width: 150px; }
+.bay-wrap { display: flex; justify-content: center; align-items: center; gap: 24px; }
+.bay-sign { display: inline-flex; width: 120px; height: 120px; border-radius: 22px; background: #1e88e5; color: #fff; font-size: 84px; font-weight: 800; align-items: center; justify-content: center; border: 6px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
+.bay { min-width: 560px; min-height: 150px; border: 6px dashed #fff; border-radius: 22px; background: #90a4ae; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; align-content: center; justify-content: center; }
+.mini { display: inline-block; }
+.mini .car { width: 86px; }
+.bay .mini .car { width: 100px; }
+.waiting { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.wait-car { width: 104px; height: 80px; border: 0; background: #fff; border-radius: 16px; box-shadow: 0 4px 0 rgba(0,0,0,.12); }
+.wait-car .car { width: 92px; }
+.waiting.one .wait-car { width: 220px; height: 150px; }
+.waiting.one .wait-car .car { width: 190px; }
+.options.wide .option { width: 440px; height: 270px; }
+.group { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 4px 8px; padding: 6px; }
+.group .mini .car { width: 76px; }
+.group.g1 .mini .car, .group.g2 .mini .car, .group.g3 .mini .car { width: 110px; }
+.seen-park { border-color: #90caf9; }
+.small-ask { font-size: 34px; }
+.sort-show { min-height: 150px; display: flex; justify-content: center; align-items: center; }
+.sort-car .car { width: 220px; }
+.sort-car.big .car { width: 260px; }
+.sort-car.small .car { width: 120px; }
+.garage-svg { width: 170px; height: 145px; }
+.opt-word { position: absolute; bottom: 8px; font-size: 22px; font-weight: 700; color: var(--soft); }
+.option { position: relative; }
+.shape { width: 150px; height: 150px; }
+.lesson-item .shape { width: 140px; height: 140px; }
+.carpark.onemore .park-car.empty { border: 5px dashed #90a4ae; }
+.park-car.new { background: rgba(206,147,216,.35); }
