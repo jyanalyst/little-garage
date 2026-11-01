@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Little Garage 小车库</title>
+<link rel="stylesheet" href="css/k1.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Little Garage">
+</head>
+<body>
+<header id="bar">
+  <button id="backBtn" class="round" type="button" aria-label="Back">⬅</button>
+  <button id="homeBtn" class="round" type="button" aria-label="Home">🏠</button>
+  <nav id="crumbs" aria-label="Where am I"></nav>
+  <button id="hearBtn" class="round" type="button" aria-label="Hear it again">🔊</button>
+</header>
+
+<main>
+  <section id="home" class="screen">
+    <div class="road-title"><h1>Little Garage <span lang="zh-CN">小车库</span></h1><div class="title-car" id="titleCar"></div></div>
+    <div class="menu-big">
+      <button id="goBtn" class="big go" type="button"><span class="ico">🚗</span><span>Let's go</span></button>
+      <button id="bookBtn" class="big book" type="button"><span class="ico">⭐</span><span>Sticker book</span></button>
+    </div>
+    <button id="grownBtn" class="grown" type="button">🔒 Grown-ups</button>
+  </section>
+
+  <section id="subjects" class="screen">
+    <h2>Pick a road</h2>
+    <div id="subjectList" class="subject-list"></div>
+  </section>
+
+  <section id="subject" class="screen">
+    <h2 id="subjectTitle"></h2>
+    <div id="topicList" class="tile-grid"></div>
+  </section>
+
+  <section id="topic" class="screen">
+    <h2 id="topicTitle"></h2>
+    <div id="actList" class="act-list"></div>
+  </section>
+
+  <section id="play" class="screen">
+    <div id="stage"></div>
+    <p id="caption" class="caption" aria-live="polite"></p>
+  </section>
+
+  <section id="stickers" class="screen">
+    <h2>My sticker book</h2>
+    <div id="stickerGrid" class="sticker-grid"></div>
+    <p id="stickerEmpty" class="soft">Finish a game to get your first sticker.</p>
+  </section>
+
+  <section id="bookdone" class="screen">
+    <h2>红车比赛</h2>
+    <div class="bookdone-car" id="bookdoneCar"></div>
+    <p class="soft big-text">Did you finish the story? 故事讲完了吗？</p>
+    <div class="menu-big">
+      <button id="bookYes" class="big go" type="button"><span class="ico">✅</span><span>Yes, 完了</span></button>
+      <button id="bookNo" class="big plain" type="button"><span class="ico">🚗</span><span>Not yet</span></button>
+    </div>
+  </section>
+
+  <section id="gate" class="screen">
+    <h2>Grown-ups only</h2>
+    <p class="soft">Press and hold the button for 3 seconds.</p>
+    <button id="holdBtn" class="hold" type="button"><span class="hold-fill"></span><span class="hold-txt">Hold 3 s</span></button>
+  </section>
+
+  <section id="parent" class="screen">
+    <h2>Grown-ups: progress log</h2>
+    <p class="soft small">Kept on this iPad only (no account, no network). Shows what was finished and which check items needed help; there are no scores.</p>
+    <div class="settings">
+      <label class="toggle"><input type="checkbox" id="pinyinToggle"> Show pinyin in Chinese games</label>
+      <label>End-of-game line points to:
+        <select id="personSel"></select></label>
+      <button id="voiceTest" type="button" class="small-btn">Test the voices</button>
+    </div>
+    <div id="logWrap"><table id="logTable"><thead><tr><th>When</th><th>Subject</th><th>Activity</th><th>Done</th><th>Needed a hint</th><th>Answer shown</th></tr></thead><tbody></tbody></table>
+      <p id="logEmpty" class="soft">Nothing yet.</p></div>
+    <div class="parent-foot">
+      <button id="clearBtn" class="hold small-hold" type="button"><span class="hold-fill"></span><span class="hold-txt">Hold to clear log and stickers</span></button>
+      <button id="parentDone" class="small-btn" type="button">Back to the child menu</button>
+    </div>
+  </section>
+</main>
+
+<div id="leave" class="overlay" hidden>
+  <div class="panel">
+    <p class="big-text">Go home? 回家？</p>
+    <div class="menu-big">
+      <button id="leaveYes" class="big plain" type="button"><span class="ico">🏠</span><span>Home</span></button>
+      <button id="leaveNo" class="big go" type="button"><span class="ico">🚗</span><span>Keep playing</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="audio/manifest.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/art.js"></script>
+<script src="js/activities.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "Little Garage 小车库",
+  "short_name": "Little Garage",
+  "start_url": "./index.html",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#e3f4ff",
+  "theme_color": "#e3f4ff",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }, { "src": "icon.png", "sizes": "180x180", "type": "image/png" }]
+}
