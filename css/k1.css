@@ -162,3 +162,7 @@ h1 span { font-size: .8em; color: #c62828; }
 .lesson-item .shape { width: 140px; height: 140px; }
 .carpark.onemore .park-car.empty { border: 5px dashed #90a4ae; }
 .park-car.new { background: rgba(206,147,216,.35); }
+/* Count to 20: all 10 cars of a round on one row at 1180 px (each car stays a ~100 px tap target) */
+.road-row.lane { flex-wrap: nowrap; gap: 6px; padding: 18px 10px; }
+.lane .row-car { min-width: 98px; min-height: 96px; padding: 4px 2px; }
+.lane .row-car .car { width: 92px; }
