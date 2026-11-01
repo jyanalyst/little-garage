@@ -96,8 +96,8 @@
     var a = play.a, L = a.lesson;
     play.phase = "lesson"; setHear(a.intro);
     if (L.type === "tapAll") {
-      var head = a.id === "en-s" ? '<div class="big-letter">s</div>' : '';
-      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + '">' + L.items.map(function (it) {
+      var head = a.head || '';
+      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : '') + '">' + L.items.map(function (it) {
         return '<button type="button" class="lesson-item" data-item="' + it.id + '">' + it.html + '<span class="li-label">' + (it.zh ? zhText(it.zh) : esc(it.label)) + '</span></button>'; }).join("") +
         '</div><div class="ready-row"></div>', "lesson tapall");
       var seen = {};
@@ -136,6 +136,7 @@
   }
   /* ---------- scenes shown above the check answers ---------- */
   function sceneHtml(sc) {
+    if (sc.type === "html") return '<div class="scene-pic">' + sc.html + '</div>';
     if (sc.type === "seq") return '<div class="road-row">' + sc.seq.map(function (n, i) { return '<span class="row-car">' + Art.car(["red", "blue", "yellow"][i % 3], n) + '</span>'; }).join("") + '<span class="row-car">' + Art.ghost() + '</span></div>';
     if (sc.type === "row") return '<div class="road-row">' + sc.row.map(function (c) { return '<span class="row-car">' + Art.car(c) + '</span>'; }).join("") + '<span class="row-car">' + Art.ghost() + '</span></div>';
     if (sc.type === "bay") return '<div class="bay-sign">' + sc.n + '</div>';

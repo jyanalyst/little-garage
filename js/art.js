@@ -42,5 +42,24 @@ var Art = (function () {
       '<rect x="45" y="90" width="110" height="75" fill="#90a4ae" stroke="#333" stroke-width="3"/>' +
       (COLORS[kind] ? '<rect x="45" y="90" width="110" height="16" fill="' + col + '"/>' : '') + '</g></svg>';
   }
-  return { car: car, sticker: sticker, ghost: ghost, group: group, shape: shape, garage: garage, COLORS: COLORS };
+
+  function igloo() { // no igloo emoji on every iPad: a simple snow house
+    return '<svg class="pic igloo" viewBox="0 0 120 100" aria-hidden="true"><path d="M8 92 Q8 22 60 18 Q112 22 112 92 Z" fill="#e3f2fd" stroke="#546e7a" stroke-width="4"/>' +
+      '<path d="M14 64 H106 M10 80 H110 M30 40 H90 M40 40 V64 M80 40 V64 M60 64 V80 M28 64 V80 M92 64 V80" stroke="#90a4ae" stroke-width="3" fill="none"/>' +
+      '<path d="M44 92 V74 Q60 58 76 74 V92 Z" fill="#37474f"/></svg>';
+  }
+  function ink() { // a pot of ink with a drip
+    return '<svg class="pic ink" viewBox="0 0 120 120" aria-hidden="true"><rect x="40" y="14" width="40" height="18" rx="4" fill="#5d4037"/>' +
+      '<path d="M28 40 Q28 32 36 32 H84 Q92 32 92 40 V104 Q92 112 84 112 H36 Q28 112 28 104 Z" fill="#cfd8dc" stroke="#37474f" stroke-width="4"/>' +
+      '<path d="M32 66 H88 V104 Q88 108 84 108 H36 Q32 108 32 104 Z" fill="#1a237e"/><path d="M100 70 Q108 84 100 92 Q92 84 100 70 Z" fill="#1a237e"/></svg>';
+  }
+  function light(on) { // traffic light with one lamp lit: "red", "yellow" or "green"
+    var lamp = function (c, y) { return '<circle cx="40" cy="' + y + '" r="16" fill="' + (on === c ? COLORS[c] : "#546e7a") + '"' + (on === c ? ' stroke="#fff" stroke-width="3"' : '') + '/>'; };
+    return '<svg class="pic light ' + on + '" viewBox="0 0 80 150" aria-hidden="true"><rect x="12" y="6" width="56" height="138" rx="14" fill="#263238"/>' +
+      lamp("red", 34) + lamp("yellow", 75) + lamp("green", 116) + '</svg>';
+  }
+  function sizedCar(size, color) { // "big" or "small" car (listen and pick)
+    return '<span class="sort-car ' + size + '">' + car(color) + '</span>';
+  }
+  return { igloo: igloo, ink: ink, light: light, sizedCar: sizedCar, car: car, sticker: sticker, ghost: ghost, group: group, shape: shape, garage: garage, COLORS: COLORS };
 })();

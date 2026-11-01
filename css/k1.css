@@ -204,3 +204,43 @@ body[data-screen="who"] .grown { display: block; }
 #parent h3 { font-size: 22px; margin: 18px 0 6px; }
 body[data-screen="parent"]::after { display: none; }
 body[data-screen="parent"] { background: var(--sky); }
+/* ---------- English and 华文 topics (js/english.js, js/chinese.js) ---------- */
+.pic { width: 120px; height: 120px; }
+.option .pic, .lesson-item .pic { width: 130px; height: 130px; }
+.pic.light { width: 80px; height: 150px; }
+.option .pic.light { width: 90px; height: 170px; }
+.scene-pic { display: flex; justify-content: center; margin: -6px 0 10px; }
+.scene-pic .emoji { font-size: 90px; background: #fff; border-radius: 24px; padding: 4px 22px; }
+.emoji.pair { font-size: 0; display: flex; gap: 4px; }
+.emoji.pair .emoji { font-size: 78px; }
+.emoji.sm { font-size: 54px; }
+.li-letter { font-size: 56px; font-weight: 800; color: #1565c0; line-height: 1; font-family: "Comic Sans MS", "Chalkboard SE", sans-serif; }
+.lesson-item .li-letter + .emoji { font-size: 90px; }
+.word-card { font-size: 92px; font-weight: 800; color: #263238; font-family: "Comic Sans MS", "Chalkboard SE", sans-serif; line-height: 1.1; }
+.lesson-item .word-card { font-size: 76px; }
+.lesson-item .sort-car.big .car { width: 190px; }
+.lesson-item .sort-car.small .car { width: 104px; }
+.option .sort-car.big .car { width: 230px; }
+.option .sort-car.small .car { width: 120px; }
+.hanzi { font-size: 140px; font-weight: 700; color: #263238; line-height: 1; }
+.hanzi-row .li-label { font-size: 84px; line-height: 1.1; }
+.hanzi-row .hz-pic { font-size: 54px; line-height: 1; }
+.hanzi-row .hz-pic .car { width: 120px; }
+.hanzi-row .hz-pic .sort-car.big .car { width: 150px; }
+.hanzi-row .hz-pic .sort-car.small .car { width: 84px; }
+.truck.wrap { flex-wrap: wrap; gap: 16px 22px; max-width: 760px; padding: 14px; }
+.truck.wrap .lesson-item { width: 220px; height: 176px; }
+.truck.wrap .emoji { font-size: 86px; }
+.truck.sentences { gap: 16px; }
+.truck.sentences .lesson-item { width: 232px; height: 240px; }
+.truck.sentences .li-label { font-size: 24px; }
+.truck.sentences .lesson-item .car { width: 170px; }
+.option .opt-word { font-size: 26px; color: #37474f; }
+.option .emoji + .opt-word { bottom: 10px; }
+/* .sort-car.big is a car size, not the .big menu button: undo the button styles (also tidies the maths sorting scene) */
+.sort-car.big { min-width: 0; min-height: 0; padding: 0; gap: 0; box-shadow: none; border-radius: 0; font-size: inherit; display: inline-block; }
+.sort-car.big:active { transform: none; }
+.sort-car { display: inline-block; line-height: 0; }
+.truck.sentences .emoji { font-size: 84px; white-space: nowrap; }
+.check .ask { margin-top: 22px; line-height: 1.5; }
+.check .flags { line-height: 1; }

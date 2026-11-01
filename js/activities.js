@@ -6,6 +6,8 @@
 var K1 = (function () {
   "use strict";
   var SSS = ["sss", "snd"];
+  // recorded letter sounds (lang "snd"): Jolly Phonics group 1 order s a t i p n. No clip yet = device voice says a close spelling (js/speech.js)
+  var SND = { s: SSS, a: ["a", "snd"], t: ["t", "snd"], i: ["i", "snd"], p: ["p", "snd"], n: ["n", "snd"] };
   function pic(e, word) { return { html: '<span class="emoji">' + e + '</span>', word: word }; }
   var P = {
     sun: pic("☀️", "sun"), sock: pic("🧦", "sock"), snake: pic("🐍", "snake"), seal: pic("🦭", "seal"),
@@ -32,7 +34,7 @@ var K1 = (function () {
 
   var ACTS = {
     "en-s": {
-      subject: "en", topic: "letters", lang: "en", title: "Letter s", titleSay: [["Letter s.", "en"]], card: "s", sticker: { color: "blue", mark: "s" },
+      subject: "en", topic: "letters", lang: "en", head: '<div class="big-letter">s</div>', title: "Letter s", titleSay: [["Letter s.", "en"]], card: "s", sticker: { color: "blue", mark: "s" },
       intro: [["This is the letter s.", "en"], ["It makes this sound.", "en"], SSS, ["Tap each picture on the truck.", "en"]],
       lesson: { type: "tapAll", items: ["sun", "sock", "snake", "seal"].map(function (k) {
         return { id: k, html: P[k].html, label: P[k].word, say: [w(k), SSS, w(k)] }; }) },
@@ -88,7 +90,7 @@ var K1 = (function () {
 
   var SUBJECTS = [
     { id: "en", name: "English", say: [["English.", "en"]], color: "blue", topics: [
-      { id: "letters", name: "Letter sounds", say: [["Letter sounds.", "en"]], acts: ["en-s"], soon: ["a", "t", "p", "i", "n"] },
+      { id: "letters", name: "Letter sounds", say: [["Letter sounds.", "en"]], acts: ["en-s"] },
       { id: "initial", name: "First sounds", acts: [] },
       { id: "rhymes", name: "Rhyming words", acts: [] },
       { id: "sight", name: "Sight words", acts: [] },
@@ -114,6 +116,6 @@ var K1 = (function () {
   function subject(id) { for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i].id === id) return SUBJECTS[i]; return null; }
   function topic(sid, tid) { var s = subject(sid); if (!s) return null; for (var i = 0; i < s.topics.length; i++) if (s.topics[i].id === tid) return s.topics[i]; return null; }
   function countLines(n) { return EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; }).concat([[EN_NUM[n] + " cars!", "en"]]); }
-  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines };
+  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, SND: SND, P: P, pic: pic, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines };
 })();
 if (typeof module !== "undefined") module.exports = K1;
