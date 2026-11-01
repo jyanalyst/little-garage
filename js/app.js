@@ -4,7 +4,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var A = K1.ACTS, gateOpen = false, play = null, unlocked = false;
-  var SCREENS = ["home", "subjects", "subject", "topic", "play", "stickers", "bookdone", "gate", "parent"];
+  var SCREENS = ["who", "newplayer", "home", "subjects", "subject", "topic", "play", "stickers", "bookdone", "gate", "parent"];
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function tap(el, fn) { el.addEventListener("click", function (e) { if (!unlocked) { unlocked = true; Speech.unlock(); } fn(e); }); }
   function zhText(z) { return K1Store.settings().pinyin && z.py ? '<ruby>' + esc(z.zh) + '<rt>' + esc(z.py) + '</rt></ruby>' : esc(z.zh); }
@@ -15,7 +15,7 @@
     SCREENS.forEach(function (s) { $(s).classList.toggle("active", s === id); });
     document.body.setAttribute("data-screen", id);
     $("backBtn").hidden = !back; $("backBtn").onclick = back ? function () { location.hash = back; } : null;
-    $("homeBtn").hidden = id === "home" || id === "gate" || id === "parent";
+    $("homeBtn").hidden = id === "home" || id === "gate" || id === "parent" || id === "who" || id === "newplayer";
     $("crumbs").innerHTML = (crumbs || []).map(esc).join(' <span class="sep">›</span> ');
     if (id !== "play") $("caption").textContent = "";
   }
@@ -25,6 +25,7 @@
   tap($("goBtn"), function () { Speech.say(K1.UI.pickRoad); location.hash = "#subjects"; });
   tap($("bookBtn"), function () { Speech.say(K1.UI.stickerBook); location.hash = "#stickers"; });
   tap($("grownBtn"), function () { location.hash = "#gate"; });
+  tap($("grownBtn2"), function () { location.hash = "#gate"; });
 
   /* ---------- Level 2: English / Maths / Chinese ---------- */
   function drawSubjects() {
@@ -373,52 +374,144 @@
     btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   }
   holdable($("holdBtn"), 3000, function () { gateOpen = true; location.hash = "#parent"; });
-  holdable($("clearBtn"), 2000, function () { K1Store.clearAll(); drawParent(); });
+  holdable($("clearBtn"), 2000, function () { K1Store.clearAll(child); drawParent(); });
+  holdable($("delBtn"), 2000, function () { if (child) { K1Store.deletePlayer(child); child = null; drawParent(); } });
 
-  /* ---------- parents' log ---------- */
-  var SUBNAME = { en: "English", ma: "Maths", zh: "Chinese" };
+  /* ---------- players: "Who's playing?" (names only in this iPad's localStorage; greeting by name uses the device voice) ---------- */
+  var CNAME = { red: "Red car", blue: "Blue car", yellow: "Yellow car", green: "Green car", orange: "Orange car", purple: "Purple car" };
+  function label(pl) { return pl.name || CNAME[pl.color] || "Player"; }
+  function drawWho() {
+    var box = $("whoList"); box.innerHTML = "";
+    K1Store.players().forEach(function (pl) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "who-tile"; b.setAttribute("data-player", pl.id);
+      b.innerHTML = Art.car(pl.color) + '<span class="who-name"></span>'; b.querySelector(".who-name").textContent = label(pl);
+      tap(b, function () {
+        K1Store.choose(pl.id);
+        // a name can't be pre-recorded: "Hello, <name>!" is spoken by the iPad's own voice, everything else keeps its clip
+        Speech.say(pl.name ? [["Hello, " + pl.name + "!", "en"]] : K1.UI.hello);
+        location.hash = "#home";
+      });
+      box.appendChild(b);
+    });
+    if (K1Store.players().length < K1Store.COLORS.length) {
+      var add = document.createElement("button"); add.type = "button"; add.className = "who-tile add"; add.id = "addPlayer";
+      add.innerHTML = '<span class="plus">＋</span><span class="who-name">New player</span>';
+      tap(add, function () { Speech.say(K1.UI.newPlayer); location.hash = "#newplayer"; });
+      box.appendChild(add);
+    }
+    show("who", [], null); setHear(K1.UI.who);
+  }
+  function colorButtons(box, taken, chosen, onPick) {
+    box.innerHTML = "";
+    K1Store.COLORS.forEach(function (c) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "color-btn" + (c === chosen ? " on" : ""); b.setAttribute("data-color", c);
+      b.innerHTML = Art.car(c) + (taken.indexOf(c) >= 0 ? '<span class="taken">taken</span>' : ""); b.disabled = taken.indexOf(c) >= 0;
+      b.setAttribute("aria-label", CNAME[c]);
+      tap(b, function () { [].forEach.call(box.children, function (x) { x.classList.toggle("on", x === b); }); onPick(c); });
+      box.appendChild(b);
+    });
+  }
+  var newColor = null;
+  function drawNew() {
+    newColor = null; $("newName").value = ""; $("newGo").disabled = true;
+    colorButtons($("colorPick"), K1Store.takenColors(), null, function (c) { newColor = c; $("newGo").disabled = false; Speech.say(K1.UI.carName[c]); });
+    show("newplayer", ["Who's playing?", "New player"], "#who"); setHear(K1.UI.newPlayer);
+  }
+  tap($("newGo"), function () {
+    if (!newColor) return; // the car colour is required (a non-reader finds himself by it); the name is optional
+    var id = K1Store.addPlayer($("newName").value, newColor), pl = K1Store.player(id);
+    $("newName").blur(); Speech.say(pl.name ? [["Hello, " + pl.name + "!", "en"]] : K1.UI.hello); location.hash = "#home";
+  });
+  function drawChip() { var pl = K1Store.player(); var c = $("playerChip"); c.innerHTML = pl ? Art.car(pl.color) + '<span></span>' : ""; if (pl) c.querySelector("span").textContent = label(pl); }
+  tap($("playerChip"), function () { Speech.say(K1.UI.who); location.hash = "#who"; });
+
+  /* ---------- parents: one child at a time (no ranking, no comparison, no scores) ---------- */
+  var SUBNAME = { en: "English", ma: "Maths", zh: "Chinese" }, child = null;
   var sel = $("personSel");
   Object.keys(K1.PEOPLE).forEach(function (k) { var o = document.createElement("option"); o.value = k; o.textContent = K1.PEOPLE[k].en + " / " + K1.PEOPLE[k].zh; sel.appendChild(o); });
-  sel.onchange = function () { K1Store.set("person", sel.value); };
-  $("pinyinToggle").onchange = function () { K1Store.set("pinyin", $("pinyinToggle").checked); };
+  sel.onchange = function () { K1Store.set("person", sel.value, child); };
+  $("pinyinToggle").onchange = function () { K1Store.set("pinyin", $("pinyinToggle").checked, child); };
   $("voiceTest").onclick = function () { Speech.unlock(); Speech.say(K1.UI.home); };
-  $("parentDone").onclick = function () { gateOpen = false; location.hash = "#home"; };
-  function drawParent() {
-    var s = K1Store.settings(); $("pinyinToggle").checked = s.pinyin; sel.value = s.person;
-    var rows = K1Store.log(), tb = document.querySelector("#logTable tbody"); tb.innerHTML = "";
-    $("logEmpty").hidden = rows.length > 0; $("logTable").hidden = !rows.length;
-    rows.forEach(function (r) {
-      var hint = (r.items || []).filter(function (x) { return x.result === "hint"; }).map(function (x) { return x.label; });
-      var shown = (r.items || []).filter(function (x) { return x.result === "shown"; }).map(function (x) { return x.label; });
-      var tr = document.createElement("tr");
-      tr.innerHTML = "<td>" + esc(K1Store.pretty(r.at)) + "</td><td>" + esc(SUBNAME[r.subject] || r.subject) + "</td><td>" + esc(r.title) + "</td><td>" + (r.done ? "✅ Finished" : "Stopped early") +
-        "</td><td>" + esc(hint.join(", ") || "–") + "</td><td>" + esc(shown.join(", ") || "–") + "</td>";
-      tb.appendChild(tr);
+  $("parentDone").onclick = function () { gateOpen = false; location.hash = K1Store.current() ? "#home" : "#who"; };
+  var editColor = null;
+  $("saveEdit").onclick = function () { if (!child) return; K1Store.updatePlayer(child, { name: $("editName").value, color: editColor }); drawParent(); };
+  function drawProgress(id) {
+    var rows = K1Store.log(id), grouped = K1Store.grouped(id), count = {}, total = 0, box = $("progress"); box.innerHTML = "";
+    grouped.forEach(function (g) { count[g.act] = g.count; total += g.count; });
+    K1.SUBJECTS.forEach(function (s) {
+      var acts = []; s.topics.forEach(function (t) { acts = acts.concat(t.acts); });
+      var done = acts.filter(function (a) { return count[a]; }).length;
+      var d = document.createElement("div"); d.className = "pcard"; d.setAttribute("data-subject", s.id);
+      d.innerHTML = "<h4>" + esc(s.name) + "</h4><p>" + done + " of " + acts.length + " activities finished</p><ul>" + acts.map(function (a) {
+        return "<li" + (count[a] ? "" : ' class="not"') + ">" + esc(A[a].title) + (count[a] ? " ✅" + (count[a] > 1 ? " ×" + count[a] : "") : " – not yet") + "</li>"; }).join("") + "</ul>";
+      box.appendChild(d);
     });
+    var help = {}; rows.forEach(function (r) { (r.items || []).forEach(function (x) { if (x.result === "first") return; var k = r.title; help[k] = help[k] || { hint: {}, shown: {} }; help[k][x.result][x.label] = 1; }); });
+    var hk = Object.keys(help);
+    var h = document.createElement("div"); h.className = "pcard wide"; h.id = "helpCard";
+    h.innerHTML = "<h4>Stickers: " + total + " · Last played: " + esc(rows.length ? K1Store.pretty(rows[0].at) : "not yet") + " (Singapore time)</h4>" +
+      "<h4>Needed help in the car game</h4>" + (hk.length ? "<ul>" + hk.map(function (k) { var x = help[k];
+        return "<li><b>" + esc(k) + "</b>: " + (Object.keys(x.hint).length ? "hint for " + esc(Object.keys(x.hint).join(", ")) : "") +
+          (Object.keys(x.shown).length ? (Object.keys(x.hint).length ? "; " : "") + "answer shown for " + esc(Object.keys(x.shown).join(", ")) : "") + "</li>"; }).join("") + "</ul>" : "<p>Nothing so far.</p>");
+    box.appendChild(h);
+  }
+  function drawParent() {
+    var list = K1Store.players();
+    if (!child || !K1Store.player(child)) child = K1Store.current() || (list[0] && list[0].id) || null;
+    var tabs = $("childTabs"); tabs.innerHTML = "";
+    list.forEach(function (pl) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "child-tab"; b.setAttribute("role", "tab"); b.setAttribute("data-child", pl.id);
+      b.setAttribute("aria-selected", pl.id === child ? "true" : "false"); b.innerHTML = Art.car(pl.color) + "<span></span>"; b.querySelector("span").textContent = label(pl);
+      b.onclick = function () { child = pl.id; drawParent(); }; tabs.appendChild(b);
+    });
+    var has = !!child; [].forEach.call(document.querySelectorAll("#parent .settings, #logWrap, #clearBtn"), function (x) { x.hidden = !has; });
+    var tb = document.querySelector("#logTable tbody"); tb.innerHTML = "";
+    if (has) {
+      var s = K1Store.settings(child), pl = K1Store.player(child); $("pinyinToggle").checked = s.pinyin; sel.value = s.person;
+      $("editName").value = pl.name; editColor = pl.color;
+      colorButtons($("editColors"), K1Store.takenColors(child), pl.color, function (c) { editColor = c; });
+      drawProgress(child);
+      var rows = K1Store.log(child);
+      $("logEmpty").hidden = rows.length > 0; $("logTable").hidden = !rows.length;
+      rows.forEach(function (r) {
+        var hint = (r.items || []).filter(function (x) { return x.result === "hint"; }).map(function (x) { return x.label; });
+        var shown = (r.items || []).filter(function (x) { return x.result === "shown"; }).map(function (x) { return x.label; });
+        var tr = document.createElement("tr");
+        tr.innerHTML = "<td>" + esc(K1Store.pretty(r.at)) + "</td><td>" + esc(SUBNAME[r.subject] || r.subject) + "</td><td>" + esc(r.title) + "</td><td>" + (r.done ? "✅ Finished" : "Stopped early") +
+          "</td><td>" + esc(hint.join(", ") || "–") + "</td><td>" + esc(shown.join(", ") || "–") + "</td>";
+        tb.appendChild(tr);
+      });
+    } else { $("progress").innerHTML = '<p class="soft">No players yet.</p>'; }
     show("parent", ["Grown-ups"], null);
   }
 
   /* ---------- router ---------- */
+  var NEED_PLAYER = /^#(home|subjects|s\/|t\/|play\/|stickers|bookdone)/;
   function route() {
-    var h = location.hash || "#home", m;
+    var h = location.hash || "#who", m;
     $("leave").hidden = true;
     if (h !== "#play" && !/^#play\//.test(h)) { if (play && play.phase !== "sticker" && play.phase !== "end") play = null; }
     if (h !== "#parent") gateOpen = false;
-    if (h === "#home") { Speech.stop(); show("home", [], null); setHear(K1.UI.home); }
+    if (NEED_PLAYER.test(h) && !K1Store.current()) { location.hash = "#who"; return; }
+    if (h === "#who") { Speech.stop(); drawWho(); }
+    else if (h === "#newplayer") drawNew();
+    else if (h === "#home") { show("home", [], null); drawChip(); setHear(K1.UI.home); }
     else if (h === "#subjects") { drawSubjects(); show("subjects", ["Home", "Pick a road"], "#home"); setHear(K1.UI.pickRoad); }
     else if ((m = /^#s\/(\w+)$/.exec(h))) drawSubject(m[1]);
     else if ((m = /^#t\/(\w+)\/(\w+)$/.exec(h))) drawTopic(m[1], m[2]);
     else if ((m = /^#play\/([\w-]+)$/.exec(h))) { if (!play || play.id !== m[1]) startPlay(m[1]); }
     else if (h === "#stickers") drawStickers();
-    else if (h === "#gate") { show("gate", ["Grown-ups"], "#home"); setHear(null); }
+    else if (h === "#gate") { show("gate", ["Grown-ups"], K1Store.current() ? "#home" : "#who"); setHear(null); }
     else if (h === "#parent") { if (gateOpen) drawParent(); else location.hash = "#gate"; }
     else if (h === "#bookdone") { show("bookdone", ["华文 Chinese", "红车比赛"], "#t/zh/story"); setHear(K1.UI.bookAsk); }
-    else location.hash = "#home";
+    else location.hash = "#who";
   }
   window.addEventListener("hashchange", route);
   // coming back from the picture book (browser Back): ask whether the story was finished
   window.addEventListener("pageshow", function () { if (bookReturn()) { if (location.hash !== "#bookdone") location.hash = "#bookdone"; else route(); } });
+  K1Store.migrate();
   if (bookReturn()) location.hash = "#bookdone";
+  else if (!location.hash || location.hash === "#home") location.hash = "#who";
   route();
 
   // offline: precache the app and every clip (sw.js); not during headless tests unless &sw=1

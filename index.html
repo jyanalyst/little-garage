@@ -21,7 +21,23 @@
 </header>
 
 <main>
+  <section id="who" class="screen">
+    <h2>Who's playing? <span lang="zh-CN" class="zh-sub">谁在玩？</span></h2>
+    <div id="whoList" class="who-list"></div>
+    <button id="grownBtn2" class="grown" type="button">🔒 Grown-ups</button>
+  </section>
+
+  <section id="newplayer" class="screen">
+    <h2>New player</h2>
+    <p class="soft">Pick a colour for your car.</p>
+    <div id="colorPick" class="color-pick"></div>
+    <label class="name-field">First name <span class="soft small">(optional, kept on this iPad only)</span><br>
+      <input id="newName" type="text" maxlength="12" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="First name"></label>
+    <div class="menu-big"><button id="newGo" class="big go" type="button" disabled><span class="ico">🚗</span><span>Let's go</span></button></div>
+  </section>
+
   <section id="home" class="screen">
+    <button id="playerChip" class="player-chip" type="button" aria-label="Change player"></button>
     <div class="road-title"><h1>Little Garage <span lang="zh-CN">小车库</span></h1><div class="title-car" id="titleCar"></div></div>
     <div class="menu-big">
       <button id="goBtn" class="big go" type="button"><span class="ico">🚗</span><span>Let's go</span></button>
@@ -73,18 +89,28 @@
   </section>
 
   <section id="parent" class="screen">
-    <h2>Grown-ups: progress log</h2>
-    <p class="soft small">Kept on this iPad only (no account, no network). Shows what was finished and which check items needed help; there are no scores.</p>
+    <h2>Grown-ups: progress</h2>
+    <p class="soft small">Kept on this iPad only (no account, no network). Shows one child at a time.</p>
+    <div id="childTabs" class="child-tabs" role="tablist" aria-label="Choose a child"></div>
+    <div id="progress" class="progress"></div>
+    <h3>Settings for this child</h3>
     <div class="settings">
       <label class="toggle"><input type="checkbox" id="pinyinToggle"> Show pinyin in Chinese games</label>
-      <label>End-of-game line points to:
+      <label>End-of-game line sends them to:
         <select id="personSel"></select></label>
       <button id="voiceTest" type="button" class="small-btn">Test the voices</button>
     </div>
+    <div class="settings edit-player">
+      <label>Name <input id="editName" type="text" maxlength="12" autocomplete="off" spellcheck="false"></label>
+      <div id="editColors" class="color-pick small-pick"></div>
+      <button id="saveEdit" type="button" class="small-btn">Save name and car</button>
+      <button id="delBtn" class="hold small-hold" type="button"><span class="hold-fill"></span><span class="hold-txt">Hold to delete this player</span></button>
+    </div>
+    <h3>Log for this child</h3>
     <div id="logWrap"><table id="logTable"><thead><tr><th>When</th><th>Subject</th><th>Activity</th><th>Done</th><th>Needed a hint</th><th>Answer shown</th></tr></thead><tbody></tbody></table>
       <p id="logEmpty" class="soft">Nothing yet.</p></div>
     <div class="parent-foot">
-      <button id="clearBtn" class="hold small-hold" type="button"><span class="hold-fill"></span><span class="hold-txt">Hold to clear log and stickers</span></button>
+      <button id="clearBtn" class="hold small-hold" type="button"><span class="hold-fill"></span><span class="hold-txt">Hold to clear this child's log and stickers</span></button>
       <button id="parentDone" class="small-btn" type="button">Back to the child menu</button>
     </div>
   </section>

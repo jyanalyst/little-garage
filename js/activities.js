@@ -22,7 +22,11 @@ var K1 = (function () {
     tapEachCar: [["Tap each car once.", "en"]],
     sticker: [["You finished! Here is a sticker for your sticker book.", "en"]],
     stickerAgain: [["You finished again! Your sticker book has one more.", "en"]],
-    bookAsk: [["故事讲完了吗？", "zh"]]
+    bookAsk: [["故事讲完了吗？", "zh"]],
+    who: [["Who's playing?", "en"], ["谁在玩？", "zh"]],
+    newPlayer: [["New player.", "en"], ["Pick a colour for your car.", "en"]],
+    hello: [["Hello!", "en"]],
+    carName: { red: [["Red car.", "en"]], blue: [["Blue car.", "en"]], yellow: [["Yellow car.", "en"]], green: [["Green car.", "en"]], orange: [["Orange car.", "en"]], purple: [["Purple car.", "en"]] }
   };
   var ASK_S = [["Which one starts with", "en"], SSS];
 
