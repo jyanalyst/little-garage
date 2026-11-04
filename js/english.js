@@ -18,6 +18,8 @@
   pw("igloo", Art.igloo()); pw("insect", "🐛"); pw("ink", Art.ink());
   pw("pencil", "✏️"); pw("panda", "🐼"); pw("police", "🚓", "police car");
   pw("nose", "👃"); pw("nut", "🥜"); pw("nest", "🪹"); pw("noodles", "🍜");
+  pw("iguana", "🦎"); pw("astronaut", "🧑‍🚀"); pw("axe", "🪓"); pw("tooth", "🦷"); pw("turtle", "🐢"); pw("penguin", "🐧"); pw("pizza", "🍕");
+  pw("nine", "9️⃣"); pw("net", "🥅"); pw("spoon", "🥄"); pw("cake", "🎂");
   pw("bus", "🚌"); pw("moon", "🌙"); pw("star", "⭐"); pw("truck", "🚚"); pw("duck", "🦆"); pw("bee", "🐝"); pw("tree", "🌳"); pw("car", "🚗");
   function word(k) { return [cap(W[k].word) + ".", "en"]; }
   function picOpt(o) { return W[o].html; }
@@ -34,19 +36,25 @@
       check: checks.map(function (x) {
         var a = x[0], opts = x[1];
         return { options: opts, answer: a, label: W[a].word, ask: "Which one starts with " + L + "?", prompt: ask, optionHtml: picOpt,
-          hint: [AGAIN].concat(opts.map(word)).concat(ask),
+          hint: opts.map(word),
           reveal: [THIS, word(a), S, ["Tap the " + W[a].word + ".", "en"]],
           yes: [YES, word(a), S] };
       }),
       endLine: endLine("the " + L + " words")
     });
   }
+  // 6 questions each, every answer a different picture taught in the lesson (i has only 4 good picture words, so two come back with new distractors)
   var LET = [
-    letter("a", ["apple", "ant", "alligator", "ambulance"], [["apple", ["apple", "dog", "sun"]], ["ant", ["ball", "ant", "fish"]], ["ambulance", ["hat", "pig", "ambulance"]]]),
-    letter("t", ["taxi", "tiger", "tomato", "tent"], [["taxi", ["taxi", "bus", "moon"]], ["tiger", ["dog", "sock", "tiger"]], ["tomato", ["tomato", "ball", "fish"]]]),
-    letter("i", ["igloo", "insect", "ink"], [["igloo", ["igloo", "sun", "dog"]], ["insect", ["cat", "insect", "ball"]], ["ink", ["moon", "hat", "ink"]]]),
-    letter("p", ["pig", "pencil", "panda", "police"], [["pig", ["pig", "sun", "cat"]], ["pencil", ["ball", "dog", "pencil"]], ["panda", ["panda", "fish", "moon"]]]),
-    letter("n", ["nose", "nut", "nest", "noodles"], [["nose", ["nose", "sun", "cat"]], ["nut", ["dog", "nut", "ball"]], ["nest", ["fish", "hat", "nest"]]])
+    letter("a", ["apple", "ant", "alligator", "ambulance", "astronaut", "axe"], [["apple", ["apple", "dog", "sun"]], ["ant", ["ball", "ant", "fish"]], ["ambulance", ["hat", "pig", "ambulance"]],
+      ["astronaut", ["astronaut", "moon", "duck"]], ["axe", ["bee", "axe", "sock"]], ["alligator", ["cat", "tree", "alligator"]]]),
+    letter("t", ["taxi", "tiger", "tomato", "tent", "tooth", "turtle"], [["taxi", ["taxi", "bus", "moon"]], ["tiger", ["dog", "sock", "tiger"]], ["tomato", ["tomato", "ball", "fish"]],
+      ["turtle", ["duck", "turtle", "sun"]], ["tooth", ["cat", "bee", "tooth"]], ["tent", ["tent", "pig", "hat"]]]),
+    letter("i", ["igloo", "insect", "ink", "iguana"], [["igloo", ["igloo", "sun", "dog"]], ["insect", ["cat", "insect", "ball"]], ["ink", ["moon", "hat", "ink"]],
+      ["iguana", ["iguana", "duck", "bus"]], ["igloo", ["fish", "tree", "igloo"]], ["insect", ["sock", "insect", "car"]]]),
+    letter("p", ["pig", "pencil", "panda", "police", "penguin", "pizza"], [["pig", ["pig", "sun", "cat"]], ["pencil", ["ball", "dog", "pencil"]], ["panda", ["panda", "fish", "moon"]],
+      ["penguin", ["duck", "penguin", "bee"]], ["pizza", ["cake", "hat", "pizza"]], ["police", ["police", "bus", "sock"]]]),
+    letter("n", ["nose", "nut", "nest", "noodles", "nine", "net"], [["nose", ["nose", "sun", "cat"]], ["nut", ["dog", "nut", "ball"]], ["nest", ["fish", "hat", "nest"]],
+      ["nine", ["nine", "bee", "car"]], ["net", ["moon", "net", "duck"]], ["noodles", ["cake", "tree", "noodles"]]])
   ];
 
   /* 2. First sounds: mixed review of three letter sounds (hear a sound, find the picture) */
@@ -54,20 +62,22 @@
     return add(id, "initial", {
       title: "First sounds " + letters.join(" "), titleSay: [["First sounds.", "en"]], card: letters.join(" "), sticker: { color: color, mark: letters[0] + letters[1] + letters[2] },
       intro: [["Each picture has a first sound.", "en"], ["Tap each picture.", "en"]],
-      lesson: { type: "tapAll", items: letters.map(function (L, i) { var k = pics[i];
+      lesson: { type: "tapAll", items: pics.map(function (k, i) { var L = letters[i >> 1];
         return { id: k, html: '<span class="li-letter">' + L + '</span>' + W[k].html, label: W[k].word, say: [SND[L], word(k)] }; }) },
       readyLine: [["Well done. Now a little car game.", "en"]],
       check: checks.map(function (x) {
         var L = x[0], a = x[1], opts = x[2], ask = [["Which one starts with", "en"], SND[L]];
         return { options: opts, answer: a, label: W[a].word, ask: "Which one starts with " + L + "?", prompt: ask, optionHtml: picOpt,
-          hint: [AGAIN].concat(opts.map(word)).concat(ask), reveal: [THIS, word(a), SND[L], ["Tap the " + W[a].word + ".", "en"]], yes: [YES, word(a), SND[L]] };
+          hint: opts.map(word), reveal: [THIS, word(a), SND[L], ["Tap the " + W[a].word + ".", "en"]], yes: [YES, word(a), SND[L]] };
       }),
       endLine: endLine("first sounds")
     });
   }
   var FS = [
-    firstSounds("en-fs1", ["s", "a", "t"], ["sun", "apple", "taxi"], [["t", "taxi", ["sun", "ant", "taxi"]], ["s", "sock", ["tiger", "sock", "apple"]], ["a", "alligator", ["alligator", "seal", "tent"]]], "blue"),
-    firstSounds("en-fs2", ["p", "i", "n"], ["pig", "insect", "nose"], [["n", "nut", ["pig", "nut", "igloo"]], ["p", "panda", ["panda", "ink", "nest"]], ["i", "igloo", ["noodles", "pencil", "igloo"]]], "orange")
+    firstSounds("en-fs1", ["s", "a", "t"], ["sun", "sock", "apple", "ant", "taxi", "tiger"], [["t", "taxi", ["sun", "ant", "taxi"]], ["s", "sock", ["tiger", "sock", "apple"]], ["a", "alligator", ["alligator", "seal", "tent"]],
+      ["t", "tomato", ["ambulance", "tomato", "snake"]], ["s", "six", ["six", "taxi", "ant"]], ["a", "astronaut", ["sun", "tiger", "astronaut"]]], "blue"),
+    firstSounds("en-fs2", ["p", "i", "n"], ["pig", "panda", "insect", "igloo", "nose", "nut"], [["n", "nut", ["pig", "nut", "igloo"]], ["p", "panda", ["panda", "ink", "nest"]], ["i", "igloo", ["noodles", "pencil", "igloo"]],
+      ["p", "pizza", ["nine", "pizza", "insect"]], ["n", "net", ["iguana", "pencil", "net"]], ["i", "ink", ["ink", "penguin", "nose"]]], "orange")
   ];
 
   /* 3. Rhyming: car / star, truck / duck, cat / hat, bee / tree */
@@ -75,13 +85,14 @@
   var RH = add("en-rhyme", "rhymes", {
     title: "Rhyme time", titleSay: [["Rhyme time.", "en"]], card: "🚗⭐", sticker: { color: "yellow", mark: "⭐" },
     intro: [["Some words sound the same at the end.", "en"], ["Tap each pair.", "en"]],
-    lesson: { type: "tapAll", items: [["car", "star"], ["truck", "duck"], ["cat", "hat"], ["bee", "tree"]].map(function (x) {
+    lesson: { type: "tapAll", cls: "wrap", items: [["car", "star"], ["truck", "duck"], ["cat", "hat"], ["bee", "tree"], ["moon", "spoon"], ["cake", "snake"]].map(function (x) {
       return { id: x[0], html: '<span class="emoji pair">' + W[x[0]].html + W[x[1]].html + '</span>', label: W[x[0]].word + " " + W[x[1]].word, say: [pair(x[0], x[1]), ["They rhyme!", "en"]] }; }) },
     readyLine: [["Well done.", "en"], GAME],
-    check: [["car", "star", ["ball", "star", "fish"]], ["cat", "hat", ["hat", "sun", "pig"]], ["truck", "duck", ["dog", "sock", "duck"]]].map(function (x) {
+    check: [["car", "star", ["ball", "star", "fish"]], ["cat", "hat", ["hat", "sun", "pig"]], ["truck", "duck", ["dog", "sock", "duck"]],
+            ["bee", "tree", ["fish", "tree", "pig"]], ["moon", "spoon", ["spoon", "car", "hat"]], ["cake", "snake", ["ball", "dog", "snake"]]].map(function (x) {
       var t = x[0], a = x[1], opts = x[2], ask = ["Which one rhymes with " + t + "?", "en"];
       return { options: opts, answer: a, label: t + " / " + a, ask: ask[0], prompt: [ask], optionHtml: picOpt, scene: { type: "html", html: W[t].html },
-        hint: [AGAIN, word(t), [opts.map(function (o) { return cap(W[o].word); }).join(". ") + ".", "en"], ["Which one sounds like " + t + "?", "en"]],
+        hint: [word(t), [opts.map(function (o) { return cap(W[o].word); }).join(". ") + ".", "en"]],
         reveal: [THIS, pair(t, a), ["Tap the " + a + ".", "en"]], yes: [YES, pair(t, a), ["They rhyme!", "en"]] };
     }),
     endLine: endLine("rhyming words")
@@ -99,16 +110,18 @@
       check: checks.map(function (x) {
         var a = x[0], opts = x[1], find = ["Find the word " + a + ".", "en"];
         return { options: opts, answer: a, label: a, ask: find[0], prompt: [find], optionHtml: function (o) { return '<span class="word-card">' + o + '</span>'; },
-          hint: [AGAIN, find, [cap(a) + " has " + NUMW[a.length] + ".", "en"]], reveal: [THIS, [cap(a) + ".", "en"], ["Tap the word " + a + ".", "en"]], yes: [YES, [cap(a) + ".", "en"]] };
+          hint: [[cap(a) + " has " + NUMW[a.length] + ".", "en"]], reveal: [THIS, [cap(a) + ".", "en"], ["Tap the word " + a + ".", "en"]], yes: [YES, [cap(a) + ".", "en"]] };
       }),
       endLine: endLine("the words you read")
     });
   }
   var SW = [
-    sight("en-sight1", "Road words", "go", "green", [["go", "🟢", "Green light, go!"], ["stop", "🛑", "Red light, stop!"], ["I", "🙋", "I drive my car."], ["see", "👀", "I see a bus."]],
-      [["go", ["go", "stop", "see"]], ["stop", ["I", "stop", "go"]], ["see", ["see", "I", "stop"]]]),
-    sight("en-sight2", "My car", "my", "red", [["my", "🙋", "My car."], ["car", "🚗", "A car goes on the road."], ["is", "➡️", "My car is red."], ["red", "🔴", "Red like a fire engine."]],
-      [["car", ["car", "my", "is"]], ["red", ["is", "red", "my"]], ["my", ["red", "car", "my"]]], [["My car is red.", "en"]])
+    sight("en-sight1", "Road words", "go", "green", [["go", "🟢", "Green light, go!"], ["stop", "🛑", "Red light, stop!"], ["I", "🙋", "I drive my car."], ["see", "👀", "I see a bus."],
+      ["we", "👨‍👩‍👦", "We go in the car."], ["can", "👍", "I can stop."]],
+      [["go", ["go", "stop", "see"]], ["stop", ["I", "stop", "go"]], ["see", ["see", "I", "stop"]], ["I", ["we", "can", "I"]], ["we", ["we", "see", "go"]], ["can", ["stop", "can", "we"]]]),
+    sight("en-sight2", "My car", "my", "red", [["my", "🙋", "My car."], ["car", "🚗", "A car goes on the road."], ["is", "➡️", "My car is red."], ["red", "🔴", "Red like a fire engine."],
+      ["the", "👉", "The bus is big."], ["big", "🐘", "A big bus."]],
+      [["car", ["car", "my", "is"]], ["red", ["is", "red", "my"]], ["my", ["red", "car", "my"]], ["is", ["is", "the", "big"]], ["the", ["big", "the", "car"]], ["big", ["my", "red", "big"]]], [["My car is red.", "en"]])
   ];
 
   /* 5. Listen and pick: two words to hold in mind (big or small, and a colour) */
@@ -116,13 +129,14 @@
   var LP = add("en-listen", "listen", {
     title: "Big and small cars", titleSay: [["Big and small cars.", "en"]], card: "🚙", sticker: { color: "blue", mark: "👂" },
     intro: [["Listen carefully.", "en"], ["Tap each car.", "en"]],
-    lesson: { type: "tapAll", items: ["big-red", "small-blue", "big-yellow", "small-green"].map(function (id) {
+    lesson: { type: "tapAll", cls: "wrap", items: ["big-red", "small-blue", "big-yellow", "small-green", "big-green", "small-red"].map(function (id) {
       var x = id.split("-"); return { id: id, html: Art.sizedCar(x[0], x[1]), label: x[0] + " " + x[1], say: [["A " + desc(id) + ".", "en"]] }; }) },
     readyLine: [["Well done.", "en"], GAME],
-    check: [["small-red", ["big-red", "small-red", "small-blue"]], ["big-blue", ["small-blue", "big-blue", "big-yellow"]], ["small-yellow", ["big-yellow", "small-green", "small-yellow"]]].map(function (x) {
+    check: [["small-red", ["big-red", "small-red", "small-blue"]], ["big-blue", ["small-blue", "big-blue", "big-yellow"]], ["small-yellow", ["big-yellow", "small-green", "small-yellow"]],
+            ["big-green", ["small-green", "big-green", "big-red"]], ["small-blue", ["big-blue", "small-red", "small-blue"]], ["big-yellow", ["big-yellow", "small-yellow", "big-green"]]].map(function (x) {
       var a = x[0], p = a.split("-"), find = ["Find the " + desc(a) + ".", "en"];
       return { options: x[1], answer: a, label: desc(a), ask: find[0], prompt: [find], optionHtml: function (o) { var q = o.split("-"); return Art.sizedCar(q[0], q[1]); },
-        hint: [AGAIN, [cap(p[0]) + ".", "en"], [cap(p[1]) + ".", "en"], find], reveal: [THIS, ["The " + desc(a) + ".", "en"], ["Tap the " + desc(a) + ".", "en"]], yes: [YES, ["The " + desc(a) + ".", "en"]] };
+        hint: [[cap(p[0]) + ".", "en"], [cap(p[1]) + ".", "en"]], reveal: [THIS, ["The " + desc(a) + ".", "en"], ["Tap the " + desc(a) + ".", "en"]], yes: [YES, ["The " + desc(a) + ".", "en"]] };
     }),
     endLine: endLine("the cars you found")
   });

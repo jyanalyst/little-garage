@@ -97,7 +97,7 @@
     play.phase = "lesson"; setHear(a.intro);
     if (L.type === "tapAll") {
       var head = a.head || '';
-      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : '') + '">' + L.items.map(function (it) {
+      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : L.items.length > 4 ? ' six' : '') + '">' + L.items.map(function (it) {
         return '<button type="button" class="lesson-item" data-item="' + it.id + '">' + it.html + '<span class="li-label">' + (it.zh ? zhText(it.zh) : esc(it.label)) + '</span></button>'; }).join("") +
         '</div><div class="ready-row"></div>', "lesson tapall");
       var seen = {};
@@ -254,51 +254,86 @@
     Speech.say(play.a.readyLine);
   }
 
-  /* ----- the no-fail check: wrong tap = replay + hint; second miss = show the answer, he taps it, move on ----- */
-  function startCheck() { play.phase = "check"; play.item = 0; play.results = []; drawItem(); }
+  /* ----- the no-fail check: wrong tap = calm pause, the question again, then a hint; second miss = the answer is shown, he taps it.
+     Answer taps are locked while the question (or the replay, hint, answer) is being said: the cards are dimmed a little and
+     brighten when he may tap. No timer is shown. If the audio never reports its end, a fallback unlocks after a sensible maximum. */
+  var Q = location.search;
+  var PAUSE = (function () { var m = /[?&]pause=(\d+)/.exec(Q); return m ? +m[1] : 1500; })(); // calm pause after a wrong tap
+  function maxMs(lines) { // generous upper bound for how long the lines can take to say (iPad voice is slower than the clips)
+    var ms = 2500; (lines || []).forEach(function (l) { ms += 700 + String(l[0]).length * (l[1] === "zh" ? 380 : 120); });
+    var m = /[?&]maxlock=(\d+)/.exec(Q); return m ? +m[1] : Math.min(ms, 25000);
+  }
+  function lockOpts(on) {
+    if (!play) return; play.locked = on;
+    var o = document.querySelector("#stage .options"); if (!o) return;
+    o.classList.toggle("locked", on); o.classList.toggle("ready", !on);
+    o.setAttribute("aria-busy", on ? "true" : "false");
+  }
+  // say lines with the answers locked; then() runs when the audio ends (or the fallback fires); answers unlock at the end of the chain
+  function sayLocked(lines, then) {
+    lockOpts(true);
+    var P = play, my = ++P.lockSeq, done = false, t = setTimeout(function () { if (play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }, maxMs(lines));
+    function fin() { if (done || play !== P || my !== P.lockSeq) return; done = true; clearTimeout(t); if (then) then(); else lockOpts(false); }
+    Speech.say(lines, fin);
+  }
+  function startCheck() { play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0; drawItem(); }
   function drawItem() {
     var a = play.a, it = a.check[play.item]; play.miss = 0; play.busy = false; play.reveal = false;
     var promptHtml = a.lang === "zh" ? zhText({ zh: it.ask, py: it.askPy }) : esc(it.ask);
     var scene = it.scene ? sceneHtml(it.scene) : it.n ? '<div class="carpark small">' + range(it.n).map(function (i) { return '<button type="button" class="park-car" data-i="' + i + '">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</button>'; }).join("") + '</div>' : '';
     var st = stage('<div class="flags">' + a.check.map(function (_, i) { return '<span class="flag' + (i < play.item ? " done" : i === play.item ? " now" : "") + '">🚩</span>'; }).join("") + '</div>' +
       '<p class="ask">' + promptHtml + '</p>' + scene +
-      '<div class="options' + (it.wide ? ' wide' : '') + '">' + it.options.map(function (o) { return '<button type="button" class="option" data-opt="' + esc(o) + '">' + it.optionHtml(o) + '</button>'; }).join("") + '</div>', "check");
+      '<div class="options locked' + (it.wide ? ' wide' : '') + '">' + it.options.map(function (o) { return '<button type="button" class="option" data-opt="' + esc(o) + '">' + it.optionHtml(o) + '</button>'; }).join("") + '</div>', "check");
     setHear(it.prompt);
-    if (it.n) [].forEach.call(st.querySelectorAll(".park-car"), function (b, i) { // counting aloud while looking is fine, not graded
-      tap(b, function () { b.classList.add("seen"); Speech.say([[K1.EN_NUM[i + 1], "en"]]); }); });
+    if (it.n) [].forEach.call(st.querySelectorAll(".park-car"), function (b, i) { // counting aloud while looking is fine, not graded (only once he may answer)
+      tap(b, function () { if (play.locked || play.busy) return; b.classList.add("seen"); Speech.say([[K1.EN_NUM[i + 1], "en"]]); }); });
     [].forEach.call(st.querySelectorAll(".option"), function (b) { tap(b, function () { choose(b); }); });
-    Speech.say(it.prompt);
+    sayLocked(it.prompt);
   }
   function choose(b) {
-    if (play.busy) return;
+    if (play.busy || play.locked) return; // locked while the question or a replay is being said
     var it = play.a.check[play.item], o = b.getAttribute("data-opt"), right = o === it.answer;
     var opts = [].slice.call(document.querySelectorAll("#stage .option")), rightBtn = opts.filter(function (x) { return x.getAttribute("data-opt") === it.answer; })[0];
     if (play.reveal && !right) return; // after the answer is shown only the answer can be tapped
     if (right) {
       play.busy = true; b.classList.remove("hint"); b.classList.add("yes");
       play.results.push({ label: it.label, result: play.reveal ? "shown" : play.miss ? "hint" : "first" });
-      Speech.say(it.yes, function () { setTimeout(nextItem, Speech.test ? 10 : 400); });
+      var P = play, went = false; // move on when "Yes!" ends, or after a fallback if the audio never reports its end
+      var go = function () { if (went || play !== P || P.phase !== "check") return; went = true; setTimeout(function () { if (play === P && P.phase === "check") nextItem(); }, Speech.test ? 10 : 400); };
+      Speech.say(it.yes, go); setTimeout(function () { if (!went && play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; go(); }, maxMs(it.yes));
       return;
     }
     play.miss++;
-    b.classList.add("dim"); b.disabled = true;
-    if (play.miss === 1) {
-      rightBtn.classList.add("hint");
-      if (it.n) countAlong(it); else Speech.say(it.hint);
-    } else {
-      play.reveal = true;
-      opts.forEach(function (x) { if (x !== rightBtn) { x.classList.add("dim"); x.disabled = true; } });
-      rightBtn.classList.remove("hint"); rightBtn.classList.add("reveal");
-      Speech.say(it.reveal);
-    }
+    b.classList.add("dim", "soft-no"); b.disabled = true;
+    Speech.stop(); lockOpts(true); var P = play, my = ++P.lockSeq, miss = P.miss; // calm pause: no sound, no red, cards resting
+    setTimeout(function () {
+      if (play !== P || my !== P.lockSeq) return;
+      if (miss === 1) {
+        sayLocked(it.prompt, function () { // the question again, then the hint as before
+          rightBtn.classList.add("hint");
+          if (it.n) countAlong(it); else sayLocked(it.hint);
+        });
+      } else {
+        sayLocked(it.prompt, function () {
+          play.reveal = true;
+          opts.forEach(function (x) { if (x !== rightBtn) { x.classList.add("dim"); x.disabled = true; } });
+          rightBtn.classList.remove("hint"); rightBtn.classList.add("reveal");
+          sayLocked(it.reveal);
+        });
+      }
+    }, PAUSE);
   }
-  function countAlong(it) { // hint for counting: the cars light up one by one while the voice counts
-    var cars = [].slice.call(document.querySelectorAll("#stage .park-car")), i = 0;
+  function countAlong(it) { // hint for counting: the cars light up one by one while the voice counts (answers locked until the end)
+    var cars = [].slice.call(document.querySelectorAll("#stage .park-car")), i = 0, lines = it.hint.slice(), first = lines.shift();
     cars.forEach(function (c) { c.classList.remove("seen"); });
-    var lines = it.hint.slice(), first = lines.shift();
+    lockOpts(true);
+    var P = play, my = ++P.lockSeq, done = false, t = setTimeout(function () { if (play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }, maxMs(it.hint));
+    function fin() { if (done || play !== P || my !== P.lockSeq) return; done = true; clearTimeout(t); lockOpts(false); }
     Speech.say([first], function step() {
-      if (i < cars.length) { cars[i].classList.add("seen"); Speech.say([lines[i]], step); i++; }
-      else Speech.say([lines[lines.length - 1]]);
+      if (play !== P || my !== P.lockSeq) return;
+      if (i < cars.length && i < lines.length) { cars[i].classList.add("seen"); Speech.say([lines[i]], step); i++; }
+      else if (i < lines.length) Speech.say(lines.slice(i), fin);
+      else fin();
     });
   }
   function nextItem() {
@@ -349,7 +384,11 @@
     if (play) K1Store.addLog({ subject: play.a.subject, topic: play.a.topic, act: play.id, title: play.a.title, done: false, items: play.results || [] });
     play = null; Speech.stop(); location.hash = "#home";
   });
-  tap($("hearBtn"), function () { if (hearLines) Speech.say(hearLines); });
+  tap($("hearBtn"), function () {
+    if (!hearLines) return;
+    if (play && play.phase === "check") { if (!play.locked && !play.busy && !play.reveal) sayLocked(hearLines); return; } // replay the question, answers locked
+    Speech.say(hearLines);
+  });
 
   /* ---------- sticker book ---------- */
   function drawStickers() {
@@ -519,5 +558,5 @@
   if ("serviceWorker" in navigator && /^https?:/.test(location.protocol) && (!Speech.test || /[?&]sw=1/.test(location.search))) {
     navigator.serviceWorker.register("sw.js").catch(function () {});
   }
-  window.__k1 = { get play() { return play; }, said: Speech.said, stats: Speech.stats, store: K1Store };
+  window.__k1 = { PAUSE: PAUSE, get play() { return play; }, said: Speech.said, stats: Speech.stats, store: K1Store };
 })();

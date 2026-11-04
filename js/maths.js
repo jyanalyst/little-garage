@@ -22,12 +22,13 @@
       var nums = []; for (var i = r[0]; i <= r[1]; i++) nums.push(num(i));
       return { from: r[0], to: r[1], nums: nums, end: [cars(r[1])] }; }), more: [["More cars are coming.", "en"]] },
     readyLine: [["Great counting, all the way to twenty.", "en"], GAME],
-    check: [[[3, 4, 5], 6, [6, 2, 9]], [[9, 10, 11], 12, [12, 7, 15]], [[17, 18, 19], 20, [20, 13, 16]]].map(function (x) {
+    check: [[[3, 4, 5], 6, [6, 2, 9]], [[9, 10, 11], 12, [12, 7, 15]], [[17, 18, 19], 20, [20, 13, 16]],
+            [[6, 7, 8], 9, [5, 9, 12]], [[12, 13, 14], 15, [16, 11, 15]], [[14, 15, 16], 17, [17, 18, 13]]].map(function (x) {
       var seq = x[0], ans = x[1];
       return { label: "after " + seq[2], answer: String(ans), options: x[2].map(String), ask: "What number comes next?", optionHtml: numHtml,
         scene: { type: "seq", seq: seq },
         prompt: seq.map(num).concat([["What number comes next?", "en"]]),
-        hint: [["Let's count again.", "en"]].concat(seq.map(num)).concat([["What number comes next?", "en"]]),
+        hint: [["Count on from " + N[seq[seq.length - 1]] + ".", "en"]],
         reveal: [THIS, num(ans), ["Tap the " + N[ans] + ".", "en"]],
         yes: [YES, num(ans)] };
     })
@@ -38,16 +39,16 @@
   add("m2-match", {
     topic: "numerals", title: "Park the cars", titleSay: [["Park the cars.", "en"]], card: "🅿️", sticker: { color: "blue", mark: "🅿️" },
     intro: [["Park the cars in the bay.", "en"], ["Look at the number on the bay.", "en"]],
-    lesson: { type: "park", rounds: [2, 4, 6].map(function (n) {
+    lesson: { type: "park", rounds: [2, 3, 4, 6].map(function (n) {
       var c = []; for (var i = 1; i <= n; i++) c.push(num(i));
       return { n: n, start: bay(n), nums: c, end: [cars(n)] }; }), full: [["The bay is full.", "en"]] },
     readyLine: [["Well done. Every bay is full.", "en"], GAME],
-    check: [[3, [1, 3, 5]], [5, [5, 2, 8]], [8, [4, 8, 10]]].map(function (x) {
+    check: [[3, [1, 3, 5]], [5, [5, 2, 8]], [8, [4, 8, 10]], [6, [6, 9, 2]], [2, [7, 2, 4]], [10, [7, 5, 10]]].map(function (x) {
       var n = x[0];
       return { label: "bay " + n, answer: String(n), options: x[1].map(String), ask: "Which car park has " + n + " cars?", wide: true,
         optionHtml: function (o) { return Art.group(+o); }, scene: { type: "bay", n: n },
         prompt: [["Bay number " + N[n] + ".", "en"], ["Which car park has " + N[n] + " cars?", "en"]],
-        hint: [AGAIN, ["Bay number " + N[n] + ".", "en"], ["Count the cars in each car park.", "en"]],
+        hint: [["Count the cars in each car park.", "en"]],
         reveal: [THIS, cars(n), ["Tap this car park.", "en"]],
         yes: [YES, cars(n)] };
     })
@@ -59,15 +60,15 @@
   add("m3-more", {
     topic: "more", title: "More or fewer", titleSay: [["More or fewer.", "en"]], card: "⚖️", sticker: { color: "orange", mark: "⚖️" },
     intro: [["Two car parks.", "en"], ["Tap each car park to count its cars.", "en"]],
-    lesson: { type: "compare", rounds: [[2, 6, "more"], [7, 3, "fewer"]].map(function (r) {
+    lesson: { type: "compare", rounds: [[2, 6, "more"], [7, 3, "fewer"], [8, 4, "more"], [3, 9, "fewer"]].map(function (r) {
       return { a: r[0], b: r[1], q: r[2], start: [Q[r[2]]], sayA: [cars(r[0])], sayB: [cars(r[1])], end: [HAS[r[2]]], win: (r[2] === "more") === (r[0] > r[1]) ? "L" : "R" }; }),
       next: [["Tap each car park to count its cars.", "en"]] },
     readyLine: [["Well done.", "en"], GAME],
-    check: [[4, 9, "more"], [8, 3, "fewer"], [5, 1, "more"]].map(function (x) {
+    check: [[4, 9, "more"], [8, 3, "fewer"], [5, 1, "more"], [2, 7, "fewer"], [10, 6, "more"], [9, 4, "fewer"]].map(function (x) {
       var win = (x[2] === "more") === (x[0] > x[1]) ? "L" : "R";
       return { label: x[2] + " (" + x[0] + " or " + x[1] + ")", answer: win, options: ["L", "R"], ask: Q[x[2]][0], wide: true, parks: { L: x[0], R: x[1] },
         optionHtml: function (o) { return Art.group(o === "L" ? x[0] : x[1], o === "L" ? "blue" : "red"); },
-        prompt: [Q[x[2]]], hint: [AGAIN, Q[x[2]]], reveal: [THIS, HAS[x[2]], ["Tap this car park.", "en"]], yes: [YES, HAS[x[2]]] };
+        prompt: [Q[x[2]]], hint: [["Count the cars in each car park.", "en"]], reveal: [THIS, HAS[x[2]], ["Tap this car park.", "en"]], yes: [YES, HAS[x[2]]] };
     })
   });
 
@@ -83,7 +84,7 @@
       { garages: ["big", "small"], cars: ["big", "small", "small", "big"], start: [["Now big and small.", "en"], ["Big cars to the big garage. Small cars to the small garage.", "en"]] }
     ], say: SK },
     readyLine: [["Every car is home.", "en"], GAME],
-    check: [["yellow", ["yellow", "green"]], ["small", ["big", "small"]], ["green", ["yellow", "green"]]].map(function (x) {
+    check: [["yellow", ["yellow", "green"]], ["small", ["big", "small"]], ["green", ["yellow", "green"]], ["red", ["blue", "red"]], ["big", ["big", "small"]], ["blue", ["red", "blue"]]].map(function (x) {
       var k = x[0];
       return { label: k + " car", answer: k, options: x[1], ask: "Where does this car go?", scene: { type: "sortCar", kind: k },
         optionHtml: function (o) { return Art.garage(o) + '<span class="opt-word">' + o + '</span>'; },
@@ -101,11 +102,13 @@
     lesson: { type: "tapAll", row: true, items: ["red", "blue", "red", "blue"].map(function (c, i) { return { id: "p" + i, html: Art.car(c), label: c, say: [[c + ".", "en"]] }; }) },
     readyLine: [rowLine(["red", "blue", "red", "blue"]), ["Red comes next.", "en"], GAME],
     check: [[["red", "blue", "red", "blue"], "red", ["red", "blue", "yellow"]], [["yellow", "green", "yellow", "green", "yellow"], "green", ["yellow", "green", "red"]],
-            [["blue", "orange", "blue", "orange"], "blue", ["orange", "purple", "blue"]]].map(function (x) {
+            [["blue", "orange", "blue", "orange"], "blue", ["orange", "purple", "blue"]],
+            [["green", "purple", "green", "purple"], "green", ["purple", "green", "orange"]], [["red", "yellow", "red", "yellow", "red"], "yellow", ["yellow", "red", "blue"]],
+            [["orange", "green", "orange", "green"], "orange", ["green", "blue", "orange"]]].map(function (x) {
       var row = x[0], a = x[1];
       return { label: row.join("-") + "-?", answer: a, options: x[2], ask: "What comes next?", scene: { type: "row", row: row },
         optionHtml: function (o) { return Art.car(o); },
-        prompt: [rowLine(row), ["What comes next?", "en"]], hint: [AGAIN, rowLine(row), ["What comes next?", "en"]],
+        prompt: [rowLine(row), ["What comes next?", "en"]], hint: [["The colours take turns.", "en"]],
         reveal: [THIS, [cap(a) + " comes next.", "en"], ["Tap the " + a + " car.", "en"]], yes: [YES, [cap(a) + " comes next.", "en"]] };
     })
   });
@@ -122,10 +125,11 @@
     intro: [["Shapes are everywhere on the road.", "en"], ["Tap each shape.", "en"]],
     lesson: { type: "tapAll", items: ["circle", "square", "triangle", "rectangle"].map(function (k) { return { id: k, html: Art.shape(k), label: k, say: [[SHAPE[k].a, "en"], [SHAPE[k].about, "en"]] }; }) },
     readyLine: [["Well done.", "en"], GAME],
-    check: [["triangle", ["triangle", "circle", "square"]], ["circle", ["square", "circle", "rectangle"]], ["rectangle", ["triangle", "square", "rectangle"]]].map(function (x) {
-      var k = x[0], find = ["Find the " + k + ".", "en"];
-      return { label: k, answer: k, options: x[1], ask: "Find the " + k + ".", optionHtml: function (o) { return Art.shape(o); },
-        prompt: [find], hint: [AGAIN, find, [SHAPE[k].hint, "en"]], reveal: [THIS, [SHAPE[k].a, "en"], ["Tap the " + k + ".", "en"]], yes: [YES, [SHAPE[k].a, "en"]] };
+    check: [["triangle", ["triangle", "circle", "square"]], ["circle", ["square", "circle", "rectangle"]], ["rectangle", ["triangle", "square", "rectangle"]],
+            ["square", ["rectangle", "circle", "square"]], ["triangle", ["square", "triangle", "rectangle"], "Find the shape with three sides."], ["circle", ["circle", "triangle", "square"], "Find the round shape."]].map(function (x) {
+      var k = x[0], find = [x[2] || "Find the " + k + ".", "en"];
+      return { label: x[2] ? k + " (" + (k === "circle" ? "round" : "three sides") + ")" : k, answer: k, options: x[1], ask: find[0], optionHtml: function (o) { return Art.shape(o); },
+        prompt: [find], hint: [[SHAPE[k].hint, "en"]], reveal: [THIS, [SHAPE[k].a, "en"], ["Tap the " + k + ".", "en"]], yes: [YES, [SHAPE[k].a, "en"]] };
     })
   });
 
@@ -135,17 +139,17 @@
   add("m7-onemore", {
     topic: "onemore", title: "One more car", titleSay: [["One more car.", "en"]], card: "🚙", sticker: { color: "blue", mark: "🚙" },
     intro: [["Some cars are parked.", "en"], ["One more car is coming.", "en"]],
-    lesson: { type: "oneMore", rounds: [1, 2, 3].map(function (n) {
+    lesson: { type: "oneMore", rounds: [1, 2, 3, 4].map(function (n) {
       var c = []; for (var i = 1; i <= n + 1; i++) c.push(num(i));
       return { n: n, start: [parked(n), ["Tap the new car to drive it in.", "en"]], nums: c, end: [now(n + 1)] }; }) },
     readyLine: [["One more, every time!", "en"], GAME],
-    check: [[3, [4, 3, 6]], [4, [5, 2, 4]], [1, [2, 1, 5]]].map(function (x) {
+    check: [[3, [4, 3, 6]], [4, [5, 2, 4]], [1, [2, 1, 5]], [2, [3, 2, 4]], [5, [7, 6, 5]], [6, [7, 8, 6]]].map(function (x) {
       var n = x[0], t = n + 1, c = [];
       for (var i = 1; i <= t; i++) c.push(num(i));
       return { label: n + " and one more", answer: String(t), options: x[1].map(String), ask: "How many cars now?", optionHtml: numHtml,
         n: t, scene: { type: "oneMore", n: n },
         prompt: [parked(n), ["One more drives in.", "en"], ["How many cars now?", "en"]],
-        hint: [["Let's count together.", "en"]].concat(c).concat([["How many cars now?", "en"]]),
+        hint: [["Let's count together.", "en"]].concat(c),
         reveal: [now(t), ["Tap the " + N[t] + ".", "en"]], yes: [YES, now(t)] };
     })
   });

@@ -244,3 +244,32 @@ body[data-screen="parent"] { background: var(--sky); }
 .truck.sentences .emoji { font-size: 84px; white-space: nowrap; }
 .check .ask { margin-top: 22px; line-height: 1.5; }
 .check .flags { line-height: 1; }
+/* ---------- check: answers locked while the question is said (dimmed a little, brighten when he may tap); calm wrong tap ---------- */
+.options.locked .option { opacity: .55; filter: saturate(.7); }
+.options.locked .option.reveal, .options.locked .option.hint { opacity: .8; }
+.options.ready .option:not(.dim) { animation: brighten .45s ease-out; }
+@keyframes brighten { 0% { opacity: .55; } 100% { opacity: 1; } }
+.option.soft-no { animation: settle .6s ease-out; }
+@keyframes settle { 0% { transform: scale(1); } 40% { transform: scale(.94); } 100% { transform: scale(.97); } }
+/* 6 lesson cards in one row (letters) */
+.truck.six { gap: 12px; padding: 14px; max-width: 1110px; }
+.truck.six .lesson-item { width: 166px; height: 200px; }
+.truck.six .emoji { font-size: 84px; }
+.truck.six .li-label { font-size: 24px; }
+.truck.six .li-letter + .emoji { font-size: 70px; }
+.truck.six .lesson-item .pic { width: 104px; height: 104px; }
+.truck.six .word-card { font-size: 60px; }
+.truck.wrap.hanzi-row .lesson-item { height: 186px; }
+.truck.sentences.wrap { max-width: 790px; }
+.truck.sentences.wrap .lesson-item { width: 236px; height: 180px; }
+.truck.sentences.wrap .emoji { font-size: 66px; }
+.truck.sentences.wrap .lesson-item .car { width: 130px; }
+.truck.wrap .lesson-item .car { width: 150px; }
+.truck.wrap .emoji.pair .emoji { font-size: 66px; }
+.truck.wrap .sort-car.big .car { width: 170px; }
+.truck.wrap .sort-car.small .car { width: 96px; }
+.flags { letter-spacing: 6px; }
+.truck.wrap.hanzi-row .li-label { font-size: 72px; }
+.truck.wrap.hanzi-row .hz-pic { font-size: 46px; }
+.truck.wrap.hanzi-row .hz-pic .sort-car.big .car { width: 118px; }
+.truck.wrap.hanzi-row .hz-pic .sort-car.small .car { width: 70px; }

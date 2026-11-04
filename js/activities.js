@@ -1,6 +1,6 @@
 /* What is in the app: subjects -> topics -> activities (MOE NEL Framework 2022, pitched at the easy end for K1).
    Topics with no activity yet show "Coming soon" (same rule as the maths games menu).
-   Each activity: a short lesson, then a 3-item no-fail check, then a sticker. The story book has no check.
+   Each activity: a short lesson (4-6 things), then a 6-item no-fail check, then a sticker. The story book has no check.
    Every spoken line is [text, lang]; lang "snd" is the recorded letter sound (sss), spoken as "sss" by the device voice if no clip.
    tools/lines.js collects every fixed line from here for recording (tools/gen_tts.js). */
 var K1 = (function () {
@@ -11,10 +11,12 @@ var K1 = (function () {
   function pic(e, word) { return { html: '<span class="emoji">' + e + '</span>', word: word }; }
   var P = {
     sun: pic("☀️", "sun"), sock: pic("🧦", "sock"), snake: pic("🐍", "snake"), seal: pic("🦭", "seal"),
+    sandwich: pic("🥪", "sandwich"), six: pic("6️⃣", "six"), moon: pic("🌙", "moon"), bus: pic("🚌", "bus"),
     dog: pic("🐶", "dog"), hat: pic("👒", "hat"), cat: pic("🐱", "cat"), pig: pic("🐷", "pig"), fish: pic("🐟", "fish"), ball: pic("⚽", "ball")
   };
   function w(k) { return [P[k].word + ".", "en"]; }
-  var ZH = { red: { zh: "红色", py: "hóng sè" }, blue: { zh: "蓝色", py: "lán sè" }, yellow: { zh: "黄色", py: "huáng sè" }, green: { zh: "绿色", py: "lǜ sè" } };
+  var ZH = { red: { zh: "红色", py: "hóng sè" }, blue: { zh: "蓝色", py: "lán sè" }, yellow: { zh: "黄色", py: "huáng sè" }, green: { zh: "绿色", py: "lǜ sè" },
+    orange: { zh: "橙色", py: "chéng sè" }, purple: { zh: "紫色", py: "zǐ sè" } };
   var EN_NUM = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
   var PEOPLE = { mummy: { en: "Mummy", zh: "妈妈" }, daddy: { en: "Daddy", zh: "爸爸" }, grandma: { en: "Grandma", zh: "奶奶" }, grandpa: { en: "Grandpa", zh: "爷爷" } };
   var UI = {
@@ -36,14 +38,14 @@ var K1 = (function () {
     "en-s": {
       subject: "en", topic: "letters", lang: "en", head: '<div class="big-letter">s</div>', title: "Letter s", titleSay: [["Letter s.", "en"]], card: "s", sticker: { color: "blue", mark: "s" },
       intro: [["This is the letter s.", "en"], ["It makes this sound.", "en"], SSS, ["Tap each picture on the truck.", "en"]],
-      lesson: { type: "tapAll", items: ["sun", "sock", "snake", "seal"].map(function (k) {
+      lesson: { type: "tapAll", items: ["sun", "sock", "snake", "seal", "sandwich", "six"].map(function (k) {
         return { id: k, html: P[k].html, label: P[k].word, say: [w(k), SSS, w(k)] }; }) },
       readyLine: [["Well done. Now a little car game.", "en"]],
-      check: [["sun", "dog", "hat"], ["cat", "sock", "pig"], ["fish", "ball", "snake"]].map(function (opts, i) {
-        var a = ["sun", "sock", "snake"][i];
+      check: [["sun", "dog", "hat"], ["cat", "sock", "pig"], ["fish", "ball", "snake"], ["moon", "seal", "dog"], ["sandwich", "bus", "cat"], ["hat", "pig", "six"]].map(function (opts, i) {
+        var a = ["sun", "sock", "snake", "seal", "sandwich", "six"][i];
         return { options: opts, answer: a, label: a, ask: "Which one starts with sss?", prompt: ASK_S,
           optionHtml: function (o) { return P[o].html; },
-          hint: [["Let's listen again.", "en"]].concat(opts.map(w)).concat(ASK_S),
+          hint: opts.map(w), // after the question is replayed: just the three words, so he hears each first sound
           reveal: [["This one!", "en"], w(a), SSS, ["Tap the " + a + ".", "en"]],
           yes: [["Yes!", "en"], w(a), SSS] };
       }),
@@ -52,13 +54,13 @@ var K1 = (function () {
     "ma-count5": {
       subject: "ma", topic: "count", lang: "en", title: "Count the cars 1 to 5", titleSay: [["Count the cars.", "en"]], card: "1–5", sticker: { color: "orange", mark: "5" },
       intro: [["Let's count the cars in the car park.", "en"], ["Tap each car once.", "en"]],
-      lesson: { type: "countRounds", rounds: [3, 4, 5], colors: ["red", "blue", "yellow", "green", "orange"] },
+      lesson: { type: "countRounds", rounds: [2, 3, 4, 5], colors: ["red", "blue", "yellow", "green", "orange"] },
       readyLine: [["Great counting. Now a little car game.", "en"]],
-      check: [3, 5, 4].map(function (n, i) {
-        var opts = [[2, 3, 5], [4, 5, 3], [4, 2, 5]][i];
+      check: [3, 5, 4, 2, 4, 5].map(function (n, i) {
+        var opts = [[2, 3, 5], [4, 5, 3], [4, 2, 5], [3, 1, 2], [5, 4, 3], [3, 5, 4]][i];
         return { n: n, label: n + " cars", ask: "How many cars?", prompt: [["How many cars?", "en"]], options: opts.map(String), answer: String(n),
           optionHtml: function (o) { return '<span class="numeral">' + o + '</span>'; },
-          hint: [["Let's count together.", "en"]].concat(EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; })).concat([["How many cars?", "en"]]),
+          hint: [["Let's count together.", "en"]].concat(EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; })),
           reveal: [[EN_NUM[n] + " cars!", "en"], ["Tap the " + EN_NUM[n] + ".", "en"]],
           yes: [["Yes! " + EN_NUM[n] + " cars.", "en"]] };
       }),
@@ -71,15 +73,16 @@ var K1 = (function () {
     "zh-colours": {
       subject: "zh", topic: "colours", lang: "zh", title: "车的颜色", titleSay: [["车的颜色。", "zh"]], sub: "Car colours", card: "颜色", sticker: { color: "green", mark: "红" },
       intro: [["看，好多车！", "zh"], ["点一点每一辆车。", "zh"]],
-      lesson: { type: "tapAll", items: ["red", "blue", "yellow", "green"].map(function (c) {
+      lesson: { type: "tapAll", cls: "wrap", items: ["red", "blue", "yellow", "green", "orange", "purple"].map(function (c) {
         return { id: c, html: Art.car(c), zh: ZH[c], label: ZH[c].zh, say: [["这是" + ZH[c].zh + "的车。", "zh"]] }; }) },
       readyLine: [["真棒！来玩一个小游戏吧。", "zh"]],
-      check: [["red", ["red", "blue", "yellow"]], ["blue", ["green", "red", "blue"]], ["yellow", ["yellow", "green", "blue"]]].map(function (x) {
+      check: [["red", ["red", "blue", "yellow"]], ["blue", ["green", "red", "blue"]], ["yellow", ["yellow", "green", "blue"]],
+              ["green", ["green", "orange", "blue"]], ["purple", ["red", "purple", "yellow"]], ["orange", ["purple", "green", "orange"]]].map(function (x) {
         var a = x[0], z = ZH[a].zh;
         return { answer: a, options: x[1], label: z, ask: z + "的车在哪里？", askPy: ZH[a].py,
           optionHtml: function (o) { return Art.car(o); },
           prompt: [[z + "的车在哪里？", "zh"]],
-          hint: [["再听一次。", "zh"], [z + "。", "zh"], [z + "的车在哪里？", "zh"]],
+          hint: [[z + "。", "zh"]],
           reveal: [["看，这是" + z + "的车。", "zh"], ["点一点" + z + "的车。", "zh"]],
           yes: [["对了！这是" + z + "的车。", "zh"]] };
       }),
@@ -110,7 +113,7 @@ var K1 = (function () {
       { id: "food", name: "食物 Food", acts: [] },
       { id: "transport", name: "交通 Transport", acts: [] },
       { id: "patterns", name: "这是… 我有… 我要…", acts: [] },
-      { id: "chars", name: "认字 人 大 小 上 下 口 车", acts: [] },
+      { id: "chars", name: "认字 Characters", acts: [] },
       { id: "songs", name: "儿歌 Songs", acts: [] } ] }
   ];
   function subject(id) { for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i].id === id) return SUBJECTS[i]; return null; }

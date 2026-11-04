@@ -12,6 +12,7 @@ var Speech = (function () {
   var RATE = (function () { var m = /[?&]cliprate=([0-9.]+)/.exec(Q); return m ? Math.min(4, +m[1]) : 0; })();
   var FILES = (typeof K1_AUDIO !== "undefined" && K1_AUDIO.files) || {};
   var has = "speechSynthesis" in window, voices = { en: null, zh: null }, token = 0, keep = null, timer = null, el = null, unlocked = false;
+  var LINE_MS = (function () { var m = /[?&]linems=(\d+)/.exec(Q); return m ? +m[1] : 15; })(); // test: how long each line "takes"
   var SND_SAY = { sss: "sss", a: "ah", t: "tuh", i: "ih", p: "puh", n: "nnn" };
   var said = []; // test hook: every line asked for, with the clip it used
   var stats = { clipsEnded: 0, tts: 0, fallbacks: 0 };
@@ -47,7 +48,7 @@ var Speech = (function () {
   }
   function tts(text, lang, my, next) {
     stats.tts++;
-    if (TEST || !has) { timer = setTimeout(function () { if (my === token) next(); }, TEST ? 15 : 400 + text.length * 60); return; }
+    if (TEST || !has) { timer = setTimeout(function () { if (my === token) next(); }, TEST ? LINE_MS : 400 + text.length * 60); return; }
     var finished = false; function fin() { if (finished) return; finished = true; clearTimeout(timer); setTimeout(function () { if (my === token) next(); }, 250); }
     // letter sounds with no clip yet: a spelling the device voice says close to the sound (not the letter name)
     if (lang === "snd") text = SND_SAY[text] || text;
