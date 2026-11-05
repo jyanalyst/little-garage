@@ -15,6 +15,7 @@ var Speech = (function () {
   var LINE_MS = (function () { var m = /[?&]linems=(\d+)/.exec(Q); return m ? +m[1] : 15; })(); // test: how long each line "takes"
   var SND_SAY = { sss: "sss", a: "ah", t: "tuh", i: "ih", p: "puh", n: "nnn" };
   var said = []; // test hook: every line asked for, with the clip it used
+  var speaking = false; // true while a say() chain is in flight
   var stats = { clipsEnded: 0, tts: 0, fallbacks: 0 };
   function key(text, lang) { return lang + "|" + text; }
   function clipFor(text, lang) { return FILES[key(text, lang)] || null; }
@@ -73,17 +74,25 @@ var Speech = (function () {
     if (RATE) { el.defaultPlaybackRate = RATE; el.playbackRate = RATE; }
     var p = el.play(); if (p && p.catch) p.catch(function () { if (my === token) fallback(); });
   }
-  function say(lines, done) {
-    stop(); var my = token, i = 0;
+  function say(lines, done, opts) {
+    /* opts.force = restart even if speaking (leave / wrong-answer pause).
+       opts.replay = deliberate hear-again, only after current chain ends (caller waits).
+       Spam taps with no opts while speaking are ignored so audio is not cut/stacked. */
+    opts = opts || {};
+    if (speaking && !opts.force && !opts.replay) { stats.ignored = (stats.ignored || 0) + 1; return false; }
+    stop(); speaking = true; var my = token, i = 0;
+    function finish() { if (my === token) speaking = false; if (done) done(); }
     function next() {
       if (my !== token) return;
-      if (i >= lines.length) { if (done) done(); return; }
+      if (i >= lines.length) { finish(); return; }
       var L = lines[i++], text = L[0], lang = L[1] || "en", src = clipFor(text, lang);
       said.push({ text: text, lang: lang, src: src });
       var cap = document.getElementById("caption"); if (cap) cap.textContent = text;
       if (src && (!TEST || REAL)) clip(src, text, lang, my, next); else tts(text, lang, my, next);
     }
     next();
+    return true;
   }
-  return { say: say, stop: stop, unlock: unlock, said: said, stats: stats, test: TEST, key: key, clipFor: clipFor, files: FILES };
+  function stopAll() { speaking = false; stop(); }
+  return { say: say, stop: stopAll, unlock: unlock, said: said, stats: stats, speaking: function () { return speaking; }, test: TEST, key: key, clipFor: clipFor, files: FILES };
 })();

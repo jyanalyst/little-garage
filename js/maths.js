@@ -3,6 +3,12 @@
    No sums: "one more" is shown with cars only (no + or = and no written sums). */
 (function () {
   "use strict";
+  var CAR_MAP = {"ma-count5": {"color": "orange", "everyday": {"id": "jeep-wrangler", "name": "Jeep Wrangler", "prompt": "bright orange Jeep Wrangler SUV"}, "super": {"id": "lamborghini-aventador", "name": "Lamborghini Aventador", "prompt": "orange Lamborghini Aventador"}}, "m1-count20": {"color": "purple", "everyday": {"id": "bmw-i3", "name": "BMW i3", "prompt": "purple BMW i3 electric hatchback"}, "super": {"id": "koenigsegg-regera", "name": "Koenigsegg Regera", "prompt": "purple Koenigsegg Regera"}}, "m2-match": {"color": "blue", "everyday": {"id": "bmw-3series", "name": "Blue Sedan", "prompt": "blue BMW 3 Series sedan"}, "super": {"id": "pagani-zonda", "name": "Pagani Zonda", "prompt": "blue Pagani Zonda"}}, "m3-more": {"color": "orange", "everyday": {"id": "tow-truck", "name": "Tow Truck", "prompt": "orange tow truck with a crane hook"}, "super": {"id": "aston-martin-db11", "name": "Aston Martin DB11", "prompt": "orange Aston Martin DB11"}}, "m4-sort": {"color": "green", "everyday": {"id": "double-decker", "name": "Double-decker", "prompt": "green and yellow Singapore-style double-decker bus (no text, no logos)"}, "super": {"id": "corvette-c8", "name": "Corvette C8", "prompt": "green Chevrolet Corvette C8"}}, "m5-pattern": {"color": "red", "everyday": {"id": "ambulance", "name": "Ambulance", "prompt": "red and white ambulance van with a light bar (no text, no logos, no crosses)"}, "super": {"id": "lotus-emira", "name": "Lotus Emira", "prompt": "red Lotus Emira"}}, "m6-shapes": {"color": "yellow", "everyday": {"id": "dump-truck", "name": "Dump Truck", "prompt": "yellow construction dump truck"}, "super": {"id": "ferrari-sf90", "name": "Ferrari SF90", "prompt": "yellow Ferrari SF90"}}, "m7-onemore": {"color": "blue", "everyday": {"id": "ford-mustang", "name": "Ford Mustang", "prompt": "blue Ford Mustang coupe"}, "super": {"id": "lamborghini-revuelto", "name": "Lamborghini Revuelto", "prompt": "blue Lamborghini Revuelto"}}};
+  function withCar(sticker, actId) {
+    var c = CAR_MAP[actId]; if (!c) return sticker;
+    return { color: sticker.color, mark: sticker.mark, car: c.everyday.id, super: c.super.id, model: c.everyday.name, superModel: c.super.name, tier10: c.tier10 || c.super.id };
+  }
+
   var N = K1.EN_NUM, ACTS = K1.ACTS;
   function cap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
   function num(n) { return [N[n], "en"]; }
@@ -16,7 +22,7 @@
 
   /* 1. Count to 20: cars drive past one by one; he taps each car and the app says the number. */
   add("m1-count20", {
-    topic: "count", title: "Count to 20", titleSay: [["Count to twenty.", "en"]], card: "20", sticker: { color: "purple", mark: "20" },
+    topic: "count", title: "Count to 20", titleSay: [["Count to twenty.", "en"]], card: "20", sticker: withCar({ color: "purple", mark: "20" }, "m1-count20"),
     intro: [["Cars are coming down the road.", "en"], ["Tap each car and count along.", "en"]],
     lesson: { type: "drivePast", rounds: [[1, 10], [11, 20]].map(function (r) {
       var nums = []; for (var i = r[0]; i <= r[1]; i++) nums.push(num(i));
@@ -37,7 +43,7 @@
   /* 2. Number match: park the right number of cars in the bay with the numeral (1-10). */
   function bay(n) { return [["Bay number " + N[n] + ".", "en"], ["Park " + N[n] + " cars.", "en"]]; }
   add("m2-match", {
-    topic: "numerals", title: "Park the cars", titleSay: [["Park the cars.", "en"]], card: "🅿️", sticker: { color: "blue", mark: "🅿️" },
+    topic: "numerals", title: "Park the cars", titleSay: [["Park the cars.", "en"]], card: "🅿️", sticker: withCar({ color: "blue", mark: "🅿️" }, "m2-match"),
     intro: [["Park the cars in the bay.", "en"], ["Look at the number on the bay.", "en"]],
     lesson: { type: "park", rounds: [2, 3, 4, 6].map(function (n) {
       var c = []; for (var i = 1; i <= n; i++) c.push(num(i));
@@ -58,7 +64,7 @@
   var Q = { more: ["Which car park has more cars?", "en"], fewer: ["Which car park has fewer cars?", "en"] };
   var HAS = { more: ["This car park has more cars.", "en"], fewer: ["This car park has fewer cars.", "en"] };
   add("m3-more", {
-    topic: "more", title: "More or fewer", titleSay: [["More or fewer.", "en"]], card: "⚖️", sticker: { color: "orange", mark: "⚖️" },
+    topic: "more", title: "More or fewer", titleSay: [["More or fewer.", "en"]], card: "⚖️", sticker: withCar({ color: "orange", mark: "⚖️" }, "m3-more"),
     intro: [["Two car parks.", "en"], ["Tap each car park to count its cars.", "en"]],
     lesson: { type: "compare", rounds: [[2, 6, "more"], [7, 3, "fewer"], [8, 4, "more"], [3, 9, "fewer"]].map(function (r) {
       return { a: r[0], b: r[1], q: r[2], start: [Q[r[2]]], sayA: [cars(r[0])], sayB: [cars(r[1])], end: [HAS[r[2]]], win: (r[2] === "more") === (r[0] > r[1]) ? "L" : "R" }; }),
@@ -77,7 +83,7 @@
   var SK = {}; ["red", "blue", "yellow", "green", "big", "small"].forEach(function (k) { SK[k] = sortLines(k); });
   function carOf(k) { return k === "big" || k === "small" ? '<span class="sort-car ' + k + '">' + Art.car("green") + '</span>' : '<span class="sort-car">' + Art.car(k) + '</span>'; }
   add("m4-sort", {
-    topic: "sorting", title: "Car garages", titleSay: [["Car garages.", "en"]], card: "🏠", sticker: { color: "green", mark: "🎨" },
+    topic: "sorting", title: "Car garages", titleSay: [["Car garages.", "en"]], card: "🏠", sticker: withCar({ color: "green", mark: "🎨" }, "m4-sort"),
     intro: [["Help the cars go home.", "en"], ["Each car goes to its own garage.", "en"]],
     lesson: { type: "sort", where: [["Where does this car go?", "en"]], phases: [
       { garages: ["red", "blue"], cars: ["red", "blue", "blue", "red"], start: [["Red cars to the red garage. Blue cars to the blue garage.", "en"]] },
@@ -97,7 +103,7 @@
   /* 5. Patterns: AB car patterns, what comes next? */
   function rowLine(row) { return [row.map(function (c, i) { return i ? c : cap(c); }).join(", ") + ".", "en"]; }
   add("m5-pattern", {
-    topic: "patterns", title: "Car patterns", titleSay: [["Car patterns.", "en"]], card: "🔁", sticker: { color: "red", mark: "🔁" },
+    topic: "patterns", title: "Car patterns", titleSay: [["Car patterns.", "en"]], card: "🔁", sticker: withCar({ color: "red", mark: "🔁" }, "m5-pattern"),
     intro: [["Look at the cars in a line.", "en"], ["Tap each car.", "en"]],
     lesson: { type: "tapAll", row: true, items: ["red", "blue", "red", "blue"].map(function (c, i) { return { id: "p" + i, html: Art.car(c), label: c, say: [[c + ".", "en"]] }; }) },
     readyLine: [rowLine(["red", "blue", "red", "blue"]), ["Red comes next.", "en"], GAME],
@@ -121,7 +127,7 @@
     rectangle: { a: "A rectangle.", about: "A number plate is a rectangle.", hint: "A rectangle is long, with four sides." }
   };
   add("m6-shapes", {
-    topic: "shapes", title: "Road shapes", titleSay: [["Road shapes.", "en"]], card: "🔺", sticker: { color: "yellow", mark: "🔺" },
+    topic: "shapes", title: "Road shapes", titleSay: [["Road shapes.", "en"]], card: "🔺", sticker: withCar({ color: "yellow", mark: "🔺" }, "m6-shapes"),
     intro: [["Shapes are everywhere on the road.", "en"], ["Tap each shape.", "en"]],
     lesson: { type: "tapAll", items: ["circle", "square", "triangle", "rectangle"].map(function (k) { return { id: k, html: Art.shape(k), label: k, say: [[SHAPE[k].a, "en"], [SHAPE[k].about, "en"]] }; }) },
     readyLine: [["Well done.", "en"], GAME],
@@ -137,7 +143,7 @@
   function parked(n) { return [n === 1 ? "One car." : cap(N[n]) + " cars.", "en"]; }
   function now(n) { return ["Now " + N[n] + " cars!", "en"]; }
   add("m7-onemore", {
-    topic: "onemore", title: "One more car", titleSay: [["One more car.", "en"]], card: "🚙", sticker: { color: "blue", mark: "🚙" },
+    topic: "onemore", title: "One more car", titleSay: [["One more car.", "en"]], card: "🚙", sticker: withCar({ color: "blue", mark: "🚙" }, "m7-onemore"),
     intro: [["Some cars are parked.", "en"], ["One more car is coming.", "en"]],
     lesson: { type: "oneMore", rounds: [1, 2, 3, 4].map(function (n) {
       var c = []; for (var i = 1; i <= n + 1; i++) c.push(num(i));

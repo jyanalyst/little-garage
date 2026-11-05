@@ -3,6 +3,12 @@
    Loaded after activities.js. The 红车 book stays the first Chinese item, unchanged. Pictures are emoji or simple SVG, no photos. */
 (function () {
   "use strict";
+  var CAR_MAP = {"zh-book": {"color": "red", "everyday": {"id": "honda-civic", "name": "Honda Civic", "prompt": "red Honda Civic sedan"}, "super": {"id": "mclaren-720s", "name": "McLaren 720S", "prompt": "red McLaren 720S"}}, "zh-colours": {"color": "green", "everyday": {"id": "mini-cooper", "name": "Mini Cooper", "prompt": "green Mini Cooper hatchback"}, "super": {"id": "porsche-911", "name": "Porsche 911", "prompt": "green Porsche 911"}}, "zh-family": {"color": "orange", "everyday": {"id": "toyota-alphard", "name": "Toyota Alphard", "prompt": "orange Toyota Alphard family MPV van"}, "super": {"id": "mclaren-senna", "name": "McLaren Senna", "prompt": "orange McLaren Senna"}}, "zh-body": {"color": "red", "everyday": {"id": "porsche-cayenne", "name": "Porsche Cayenne", "prompt": "red Porsche Cayenne SUV"}, "super": {"id": "porsche-taycan", "name": "Porsche Taycan", "prompt": "red Porsche Taycan Turbo"}}, "zh-food": {"color": "yellow", "everyday": {"id": "food-truck", "name": "Food Truck", "prompt": "yellow food truck van with a window flap (no text, no logos)"}, "super": {"id": "amg-gt", "name": "Mercedes-AMG GT", "prompt": "yellow Mercedes-AMG GT"}}, "zh-transport": {"color": "blue", "everyday": {"id": "sbs-bus", "name": "City Bus", "prompt": "blue city single-decker bus (no text, no logos)"}, "super": {"id": "audi-r8", "name": "Audi R8", "prompt": "blue Audi R8"}}, "zh-sentences": {"color": "green", "everyday": {"id": "toyota-camry", "name": "Toyota Camry", "prompt": "green Toyota Camry sedan"}, "super": {"id": "nissan-gtr", "name": "Nissan GT-R", "prompt": "green Nissan GT-R"}}, "zh-chars1": {"color": "purple", "everyday": {"id": "kia-soul", "name": "Kia Soul", "prompt": "purple Kia Soul boxy hatchback"}, "super": {"id": "lexus-lfa", "name": "Lexus LFA", "prompt": "purple Lexus LFA"}}, "zh-chars2": {"color": "green", "everyday": {"id": "honda-jazz", "name": "Honda Jazz", "prompt": "green Honda Jazz hatchback"}, "super": {"id": "jaguar-ftype", "name": "Jaguar F-Type", "prompt": "green Jaguar F-Type R coupe"}}, "zh-song": {"color": "red", "everyday": {"id": "chevy-belair", "name": "Chevy Bel Air", "prompt": "classic red Chevrolet Bel Air convertible"}, "super": {"id": "bmw-m8", "name": "BMW M8", "prompt": "red BMW M8 Competition coupe"}}};
+  function withCar(sticker, actId) {
+    var c = CAR_MAP[actId]; if (!c) return sticker;
+    return { color: sticker.color, mark: sticker.mark, car: c.everyday.id, super: c.super.id, model: c.everyday.name, superModel: c.super.name, tier10: c.tier10 || c.super.id };
+  }
+
   var ACTS = K1.ACTS;
   var AGAIN = ["再听一次。", "zh"], READY = [["真棒！来玩一个小游戏吧。", "zh"]];
   function E(e) { return '<span class="emoji">' + e + '</span>'; }
@@ -28,7 +34,7 @@
   function W(list) { var o = {}; list.forEach(function (x) { o[x[0]] = { zh: x[1], py: x[2], html: x[3].charAt(0) === "<" ? x[3] : E(x[3]), more: x[4] }; }); return o; }
 
   var FAM = words("zh-family", "family", {
-    title: "家人", sub: "Family", card: "👨‍👩‍👦", sticker: { color: "orange", mark: "家" }, where: true,
+    title: "家人", sub: "Family", card: "👨‍👩‍👦", sticker: withCar({ color: "orange", mark: "家" }, "zh-family"), where: true,
     intro: [["我们一家人坐车去玩。", "zh"], ["点一点每一个人。", "zh"]],
     words: W([["dad", "爸爸", "bà ba", "👨"], ["mum", "妈妈", "mā ma", "👩"], ["grandpa", "爷爷", "yé ye", "👴"], ["grandma", "奶奶", "nǎi nai", "👵"], ["brother", "哥哥", "gē ge", "👦"], ["sister", "姐姐", "jiě jie", "👧"]]),
     items: ["dad", "mum", "grandpa", "grandma", "brother", "sister"],
@@ -37,7 +43,7 @@
     end: "说说你的家人吗？"
   });
   var BODY = words("zh-body", "body", {
-    title: "身体", sub: "My body", card: "👀", sticker: { color: "red", mark: "手" },
+    title: "身体", sub: "My body", card: "👀", sticker: withCar({ color: "red", mark: "手" }, "zh-body"),
     intro: [["这是我的身体。", "zh"], ["点一点，听一听。", "zh"]],
     words: W([["eyes", "眼睛", "yǎn jing", "👀", "眼睛，看一看。"], ["ears", "耳朵", "ěr duo", "👂", "耳朵，听一听。"], ["nose", "鼻子", "bí zi", "👃", "鼻子，闻一闻。"],
       ["mouth", "嘴巴", "zuǐ ba", "👄", "嘴巴，说一说。"], ["hand", "手", "shǒu", "✋", "手，拍一拍。"], ["foot", "脚", "jiǎo", "🦶", "脚，跳一跳。"]]),
@@ -47,7 +53,7 @@
     end: "一起拍拍手吗？"
   });
   var FOOD = words("zh-food", "food", {
-    title: "餐车", sub: "Food truck", card: "🍎", sticker: { color: "yellow", mark: "🍎" }, where: true,
+    title: "餐车", sub: "Food truck", card: "🍎", sticker: withCar({ color: "yellow", mark: "🍎" }, "zh-food"), where: true,
     intro: [["餐车来了！", "zh"], ["点一点每一样食物。", "zh"]],
     words: W([["apple", "苹果", "píng guǒ", "🍎"], ["banana", "香蕉", "xiāng jiāo", "🍌"], ["rice", "米饭", "mǐ fàn", "🍚"], ["noodles", "面条", "miàn tiáo", "🍜"], ["egg", "鸡蛋", "jī dàn", "🥚"], ["milk", "牛奶", "niú nǎi", "🥛"]]),
     items: ["apple", "banana", "rice", "noodles", "egg", "milk"],
@@ -56,7 +62,7 @@
     end: "说说你爱吃什么吗？"
   });
   var TRANS = words("zh-transport", "transport", {
-    title: "交通工具", sub: "Transport", card: "🚌", sticker: { color: "blue", mark: "🚌" },
+    title: "交通工具", sub: "Transport", card: "🚌", sticker: withCar({ color: "blue", mark: "🚌" }, "zh-transport"),
     intro: [["路上有好多交通工具。", "zh"], ["点一点每一个。", "zh"]],
     words: W([["car", "汽车", "qì chē", "🚗"], ["bus", "巴士", "bā shì", "🚌"], ["train", "火车", "huǒ chē", "🚆"], ["plane", "飞机", "fēi jī", "✈️"], ["ship", "船", "chuán", "🚢"], ["bike", "自行车", "zì xíng chē", "🚲"]]),
     items: ["car", "bus", "train", "plane", "ship", "bike"],
@@ -70,7 +76,7 @@
   var SENT = [["bus", "这是巴士。", "zhè shì bā shì."], ["plane", "这是飞机。", "zhè shì fēi jī."], ["red", "我有一辆红车。", "wǒ yǒu yí liàng hóng chē."], ["green", "我有一辆绿车。", "wǒ yǒu yí liàng lǜ chē."],
     ["banana", "我要香蕉。", "wǒ yào xiāng jiāo."], ["milk", "我要牛奶。", "wǒ yào niú nǎi."]];
   var PAT = add("zh-sentences", "patterns", {
-    title: "说一说", titleSay: [["说一说。", "zh"]], sub: "这是… 我有… 我要…", card: "💬", sticker: { color: "green", mark: "说" },
+    title: "说一说", titleSay: [["说一说。", "zh"]], sub: "这是… 我有… 我要…", card: "💬", sticker: withCar({ color: "green", mark: "说" }, "zh-sentences"),
     intro: [["我们来说一说。", "zh"], ["点一点，听一听。", "zh"]],
     lesson: { type: "tapAll", cls: "sentences wrap", items: SENT.map(function (x) { return { id: x[0], html: PIC[x[0]], zh: { zh: x[1], py: x[2] }, label: x[1], say: [[x[1], "zh"]] }; }) },
     check: [["apple", ["apple", "banana", "milk"], "我要苹果。", "wǒ yào píng guǒ."], ["train", ["bus", "train", "plane"], "这是火车。", "zhè shì huǒ chē."], ["blue", ["red", "blue", "yellow"], "我有一辆蓝车。", "wǒ yǒu yí liàng lán chē."],
@@ -86,7 +92,7 @@
   function chars(id, title, color, mark, list, checks) {
     var V = {}; list.forEach(function (x) { V[x[0]] = { py: x[1], pic: x[2], clue: x[3] }; });
     return add(id, "chars", {
-      title: title, titleSay: [["认字。", "zh"]], card: list.map(function (x) { return x[0]; }).join(""), sticker: { color: color, mark: mark },
+      title: title, titleSay: [["认字。", "zh"]], card: list.map(function (x) { return x[0]; }).join(""), sticker: withCar({ color: color, mark: mark }, id),
       intro: [["我们来认字。", "zh"], ["点一点每一个字。", "zh"]],
       lesson: { type: "tapAll", cls: "hanzi-row" + (list.length > 4 ? " wrap" : ""), items: list.map(function (x) {
         return { id: x[0], html: '<span class="hz-pic">' + x[2] + '</span>', zh: { zh: x[0], py: x[1] }, label: x[0], say: [[x[0] + "。", "zh"], [x[3], "zh"]] }; }) },
@@ -123,7 +129,7 @@
       prompt: [[line, "zh"], [q, "zh"]], hint: [[clue, "zh"]], reveal: [["看，是这个。", "zh"], ["点一点。", "zh"]], yes: [["对了！", "zh"], [line, "zh"]] };
   }
   var SG = add("zh-song", "songs", {
-    title: "儿歌 小汽车", titleSay: [["儿歌，小汽车。", "zh"]], sub: "Car chant", card: "🎵", sticker: { color: "red", mark: "🎵" },
+    title: "儿歌 小汽车", titleSay: [["儿歌，小汽车。", "zh"]], sub: "Car chant", card: "🎵", sticker: withCar({ color: "red", mark: "🎵" }, "zh-song"),
     intro: [["我们来念儿歌。", "zh"], ["点一点每一句。", "zh"]],
     lesson: { type: "tapAll", cls: "sentences", items: SONG.map(function (x) { return { id: x[0], html: E(x[3]), zh: { zh: x[1], py: x[2] }, label: x[1], say: [[x[1], "zh"]] }; }) },
     readyLine: [["我们一起念一遍。", "zh"]].concat(SONG.map(function (x) { return [x[1], "zh"]; })).concat(READY),

@@ -26,6 +26,7 @@ var K1 = (function () {
     tapEachCar: [["Tap each car once.", "en"]],
     sticker: [["You finished! Here is a sticker for your sticker book.", "en"]],
     stickerAgain: [["You finished again! Your sticker book has one more.", "en"]],
+    superCar: [["Your car became a super car!", "en"]],
     bookAsk: [["故事讲完了吗？", "zh"]],
     who: [["Who's playing?", "en"], ["谁在玩？", "zh"]],
     newPlayer: [["New player.", "en"], ["Pick a colour for your car.", "en"]],
@@ -36,7 +37,7 @@ var K1 = (function () {
 
   var ACTS = {
     "en-s": {
-      subject: "en", topic: "letters", lang: "en", head: '<div class="big-letter">s</div>', title: "Letter s", titleSay: [["Letter s.", "en"]], card: "s", sticker: { color: "blue", mark: "s" },
+      subject: "en", topic: "letters", lang: "en", head: '<div class="big-letter">s</div>', title: "Letter s", titleSay: [["Letter s.", "en"]], card: "s", sticker: { color: "blue", mark: "s", car: "toyota-prius-taxi", super: "ferrari-488", model: "Toyota Prius" , superModel: "Ferrari 488", tier10: "ferrari-488" },
       intro: [["This is the letter s.", "en"], ["It makes this sound.", "en"], SSS, ["Tap each picture on the truck.", "en"]],
       lesson: { type: "tapAll", items: ["sun", "sock", "snake", "seal", "sandwich", "six"].map(function (k) {
         return { id: k, html: P[k].html, label: P[k].word, say: [w(k), SSS, w(k)] }; }) },
@@ -52,7 +53,7 @@ var K1 = (function () {
       endLine: function (p) { return [["All done for today.", "en"], ["Go and tell " + p.en + " about the s words.", "en"]]; }
     },
     "ma-count5": {
-      subject: "ma", topic: "count", lang: "en", title: "Count the cars 1 to 5", titleSay: [["Count the cars.", "en"]], card: "1–5", sticker: { color: "orange", mark: "5" },
+      subject: "ma", topic: "count", lang: "en", title: "Count the cars 1 to 5", titleSay: [["Count the cars.", "en"]], card: "1–5", sticker: { color: "orange", mark: "5", car: "jeep-wrangler", super: "lamborghini-aventador", model: "Jeep Wrangler" , superModel: "Lamborghini Aventador", tier10: "lamborghini-aventador" },
       intro: [["Let's count the cars in the car park.", "en"], ["Tap each car once.", "en"]],
       lesson: { type: "countRounds", rounds: [2, 3, 4, 5], colors: ["red", "blue", "yellow", "green", "orange"] },
       readyLine: [["Great counting. Now a little car game.", "en"]],
@@ -67,11 +68,11 @@ var K1 = (function () {
       endLine: function (p) { return [["All done for today.", "en"], ["Go and count some cars with " + p.en + ".", "en"]]; }
     },
     "zh-book": {
-      subject: "zh", topic: "story", lang: "zh", title: "红车比赛", titleSay: [["红车比赛。", "zh"]], card: "📖", book: "https://jyanalyst.github.io/Chinese-books/index.html", sticker: { color: "red", mark: "书" },
+      subject: "zh", topic: "story", lang: "zh", title: "红车比赛", titleSay: [["红车比赛。", "zh"]], card: "📖", book: "https://jyanalyst.github.io/Chinese-books/index.html", sticker: { color: "red", mark: "书", car: "honda-civic", super: "mclaren-720s", model: "Honda Civic" , superModel: "McLaren 720S", tier10: "mclaren-720s" },
       endLine: function (p) { return [["故事讲完了。", "zh"], ["你想跟" + p.zh + "说说红车吗？", "zh"]]; }
     },
     "zh-colours": {
-      subject: "zh", topic: "colours", lang: "zh", title: "车的颜色", titleSay: [["车的颜色。", "zh"]], sub: "Car colours", card: "颜色", sticker: { color: "green", mark: "红" },
+      subject: "zh", topic: "colours", lang: "zh", title: "车的颜色", titleSay: [["车的颜色。", "zh"]], sub: "Car colours", card: "颜色", sticker: { color: "green", mark: "红", car: "mini-cooper", super: "porsche-911", model: "Mini Cooper" , superModel: "Porsche 911", tier10: "porsche-911" },
       intro: [["看，好多车！", "zh"], ["点一点每一辆车。", "zh"]],
       lesson: { type: "tapAll", cls: "wrap", items: ["red", "blue", "yellow", "green", "orange", "purple"].map(function (c) {
         return { id: c, html: Art.car(c), zh: ZH[c], label: ZH[c].zh, say: [["这是" + ZH[c].zh + "的车。", "zh"]] }; }) },

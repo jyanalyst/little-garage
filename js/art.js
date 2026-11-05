@@ -13,8 +13,36 @@ var Art = (function () {
       (label != null ? '<circle cx="104" cy="66" r="15" fill="#fff" stroke="#333" stroke-width="2"/><text x="104" y="73" text-anchor="middle" font-size="20" font-weight="700" fill="#333" font-family="sans-serif">' + label + '</text>' : '') +
       '</svg>';
   }
-  function sticker(s, count) { // s = {color, mark}; count > 1 adds a ×N badge (same sticker again, not a new one)
-    return '<div class="sticker" style="--sc:' + (COLORS[s.color] || s.color) + '"><div class="sticker-car">' + car(s.color) + '</div><div class="sticker-mark">' + s.mark + '</div>' +
+  /* sticker tiers: 1 = everyday drawing, 5 = super car drawing, 10 = Higgsfield 3D cut-out of the same super car (img/stickers/tier10/<super>.webp, all 30) */
+  function stickerTier(count) {
+    var n = +count || 0;
+    if (n >= 10) return 10;
+    if (n >= 5) return 5;
+    return 1;
+  }
+  function stickerSrc(s, count) {
+    var tier = stickerTier(count);
+    // ×10: Higgsfield 3D cut-out of the activity's super car (tier10 slug defaults to the super slug)
+    if (tier >= 10 && (s.tier10 || s.super)) return "img/stickers/tier10/" + (s.tier10 || s.super) + ".webp";
+    if (tier >= 5 && s.super) return "img/stickers/super/" + s.super + ".webp";
+    if (s.car) return "img/stickers/everyday/" + s.car + ".webp";
+    return null;
+  }
+  function stickerLabel(s, count) {
+    var tier = stickerTier(count);
+    if (tier >= 5 && s.superModel) return s.superModel;
+    return s.model || "";
+  }
+  function sticker(s, count) { // s = {color, mark, car?, super?, model?, superModel?, tier10?}; count > 1 adds a ×N badge
+    var src = stickerSrc(s, count), tier = stickerTier(count), label = stickerLabel(s, count);
+    var body;
+    if (src) {
+      body = '<img class="sticker-img" src="' + src + '" alt="" width="140" height="140" loading="lazy"/>' +
+        (label ? '<div class="sticker-model">' + label + '</div>' : '');
+    } else {
+      body = '<div class="sticker-car">' + car(s.color) + '</div><div class="sticker-mark">' + s.mark + '</div>';
+    }
+    return '<div class="sticker' + (tier >= 5 ? ' super' : '') + (tier >= 10 ? ' tier10' : '') + '" style="--sc:' + (COLORS[s.color] || s.color) + '" data-tier="' + tier + '">' + body +
       (count > 1 ? '<div class="sticker-count">×' + count + '</div>' : '') + '</div>';
   }
   function ghost() { // the empty "?" slot in a row
@@ -61,5 +89,5 @@ var Art = (function () {
   function sizedCar(size, color) { // "big" or "small" car (listen and pick)
     return '<span class="sort-car ' + size + '">' + car(color) + '</span>';
   }
-  return { igloo: igloo, ink: ink, light: light, sizedCar: sizedCar, car: car, sticker: sticker, ghost: ghost, group: group, shape: shape, garage: garage, COLORS: COLORS };
+  return { igloo: igloo, ink: ink, light: light, sizedCar: sizedCar, car: car, sticker: sticker, stickerTier: stickerTier, stickerSrc: stickerSrc, stickerLabel: stickerLabel, ghost: ghost, group: group, shape: shape, garage: garage, COLORS: COLORS };
 })();

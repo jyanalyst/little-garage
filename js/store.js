@@ -3,6 +3,7 @@
    k1.p.<id>.stickers     : [{sticker, act, at}]   one entry per finished run (grouped per activity for display, ×N)
    k1.p.<id>.log          : [{at, subject, topic, act, title, done, items:[{label, result}]}]  newest first, max 300
    k1.p.<id>.settings     : {pinyin:false, person:"mummy"}
+   k1.p.<id>.tries        : {actId:{started,finished}}  started = opens; finished tracked separately (stickers also count finishes)
    Before players existed the same data lived in k1.stickers.v1 / k1.log.v1 / k1.settings.v1: migrate() moves it into
    the first player (red car, no name) and keeps a copy under k1.migrated.v1 so nothing is lost. */
 var K1Store = (function () {
@@ -57,7 +58,7 @@ var K1Store = (function () {
     addPlayer: addPlayer,
     choose: function (id) { var p = P(); if (find(id)) { p.current = id; savePlayers(p); } },
     updatePlayer: function (id, ch) { var p = P(); p.list.forEach(function (x) { if (x.id === id) { if (ch.name != null) x.name = cleanName(ch.name); if (ch.color) x.color = ch.color; } }); savePlayers(p); },
-    deletePlayer: function (id) { var p = P(); p.list = p.list.filter(function (x) { return x.id !== id; }); if (p.current === id) p.current = p.list.length ? p.list[0].id : null; savePlayers(p); ["stickers", "log", "settings"].forEach(function (b) { del(key(b, id)); }); },
+    deletePlayer: function (id) { var p = P(); p.list = p.list.filter(function (x) { return x.id !== id; }); if (p.current === id) p.current = p.list.length ? p.list[0].id : null; savePlayers(p); ["stickers", "log", "settings", "tries"].forEach(function (b) { del(key(b, id)); }); },
     takenColors: function (exceptId) { return P().list.filter(function (x) { return x.id !== exceptId; }).map(function (x) { return x.color; }); },
     settings: settings,
     set: function (k, v, id) { var s = settings(id); s[k] = v; jset(key("settings", id), s); },
@@ -67,6 +68,18 @@ var K1Store = (function () {
     count: function (act, id) { return stickers(id).filter(function (x) { return x.act === act; }).length; },
     log: function (id) { return arr(key("log", id)); },
     addLog: function (e) { var a = arr(key("log")); e.at = now(); a.unshift(e); jset(key("log"), a.slice(0, 300)); },
-    clearAll: function (id) { del(key("stickers", id)); del(key("log", id)); }
+    /* attempts: started each time he opens an activity; finished = sticker count for that act */
+    triesMap: function (id) { var m = jget(key("tries", id), {}); return m && typeof m === "object" ? m : {}; },
+    tryCount: function (act, id) { var m = this.triesMap(id)[act]; return m && m.started ? m.started : 0; },
+    finishedCount: function (act, id) { return this.count(act, id); },
+    addTry: function (act) {
+      var m = this.triesMap(); if (!m[act]) m[act] = { started: 0, finished: 0 };
+      m[act].started = (m[act].started || 0) + 1; jset(key("tries"), m); return m[act].started;
+    },
+    markFinished: function (act) {
+      var m = this.triesMap(); if (!m[act]) m[act] = { started: 0, finished: 0 };
+      m[act].finished = (m[act].finished || 0) + 1; jset(key("tries"), m); return m[act].finished;
+    },
+    clearAll: function (id) { del(key("stickers", id)); del(key("log", id)); del(key("tries", id)); }
   };
 })();

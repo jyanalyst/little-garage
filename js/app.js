@@ -6,7 +6,36 @@
   var A = K1.ACTS, gateOpen = false, play = null, unlocked = false;
   var SCREENS = ["who", "newplayer", "home", "subjects", "subject", "topic", "play", "stickers", "bookdone", "gate", "parent"];
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function tap(el, fn) { el.addEventListener("click", function (e) { if (!unlocked) { unlocked = true; Speech.unlock(); } fn(e); }); }
+  /* Spam-proof taps: per-element debounce (~400ms), one fire for touch+click (iPad), optional screen busy lock.
+     kind "nav" uses the shared screenBusy; answers/lesson pass their own guards. */
+  var TAP_MS = 400, screenBusyUntil = 0;
+  function screenBusy(ms) { screenBusyUntil = Date.now() + (ms == null ? TAP_MS : ms); }
+  function isScreenBusy() { return Date.now() < screenBusyUntil; }
+  function tap(el, fn, opts) {
+    if (!el) return;
+    opts = opts || {};
+    var ms = opts.ms != null ? opts.ms : TAP_MS;
+    function fire(e) {
+      if (!unlocked) { unlocked = true; Speech.unlock(); }
+      if (opts.nav && isScreenBusy()) return;
+      var now = Date.now();
+      if (el._k1TapAt && now - el._k1TapAt < ms) return;
+      el._k1TapAt = now;
+      if (opts.nav) screenBusy(ms);
+      fn(e);
+    }
+    // pointerup = one event for mouse, touch, pen (avoids touchend+click double-fire on iPad)
+    el.addEventListener("pointerup", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      el._k1Ptr = Date.now();
+      fire(e);
+    });
+    // click fallback (keyboard / older browsers); skip if pointerup just handled it
+    el.addEventListener("click", function (e) {
+      if (el._k1Ptr && Date.now() - el._k1Ptr < 700) return;
+      fire(e);
+    });
+  }
   function zhText(z) { return K1Store.settings().pinyin && z.py ? '<ruby>' + esc(z.zh) + '<rt>' + esc(z.py) + '</rt></ruby>' : esc(z.zh); }
   var hearLines = null; // what the 🔊 button repeats on this screen
   function setHear(lines) { hearLines = lines; $("hearBtn").hidden = !lines; }
@@ -14,7 +43,9 @@
   function show(id, crumbs, back) {
     SCREENS.forEach(function (s) { $(s).classList.toggle("active", s === id); });
     document.body.setAttribute("data-screen", id);
-    $("backBtn").hidden = !back; $("backBtn").onclick = back ? function () { location.hash = back; } : null;
+    screenBusyUntil = 0; // new screen: allow the next intentional tap (busy only blocks mash on the same screen)
+    ["goBtn","bookBtn","homeBtn","hearBtn","grownBtn","grownBtn2","playerChip"].forEach(function (id) { var el = $(id); if (el) el._k1TapAt = 0; });
+    $("backBtn").hidden = !back; $("backBtn").onclick = back ? function () { if (isScreenBusy()) return; screenBusy(); location.hash = back; } : null; // busy checked before set
     $("homeBtn").hidden = id === "home" || id === "gate" || id === "parent" || id === "who" || id === "newplayer";
     $("crumbs").innerHTML = (crumbs || []).map(esc).join(' <span class="sep">›</span> ');
     if (id !== "play") $("caption").textContent = "";
@@ -22,10 +53,10 @@
 
   /* ---------- Level 1: main menu ---------- */
   $("titleCar").innerHTML = Art.car("red") + Art.car("blue");
-  tap($("goBtn"), function () { Speech.say(K1.UI.pickRoad); location.hash = "#subjects"; });
-  tap($("bookBtn"), function () { Speech.say(K1.UI.stickerBook); location.hash = "#stickers"; });
-  tap($("grownBtn"), function () { location.hash = "#gate"; });
-  tap($("grownBtn2"), function () { location.hash = "#gate"; });
+  tap($("goBtn"), function () { Speech.say(K1.UI.pickRoad, null, { force: true }); location.hash = "#subjects"; }, { nav: true });
+  tap($("bookBtn"), function () { Speech.say(K1.UI.stickerBook, null, { force: true }); location.hash = "#stickers"; }, { nav: true });
+  tap($("grownBtn"), function () { location.hash = "#gate"; }, { nav: true });
+  tap($("grownBtn2"), function () { location.hash = "#gate"; }, { nav: true });
 
   /* ---------- Level 2: English / Maths / Chinese ---------- */
   function drawSubjects() {
@@ -33,7 +64,7 @@
     K1.SUBJECTS.forEach(function (s) {
       var b = document.createElement("button"); b.type = "button"; b.className = "subject-card"; b.setAttribute("data-subject", s.id);
       b.innerHTML = '<div class="sc-car">' + Art.car(s.color) + '</div><div class="sc-name">' + esc(s.name) + '</div>';
-      tap(b, function () { Speech.say(s.say); location.hash = "#s/" + s.id; });
+      tap(b, function () { Speech.say(s.say, null, { force: true }); location.hash = "#s/" + s.id; }, { nav: true });
       box.appendChild(b);
     });
   }
@@ -46,7 +77,7 @@
       var open = t.acts.length > 0, b = document.createElement("button"); b.type = "button";
       b.className = "tile" + (open ? "" : " soon"); b.setAttribute("data-topic", t.id); b.disabled = !open;
       b.innerHTML = '<span class="tile-name">' + esc(t.name) + '</span>' + (open ? '<span class="tile-go">🚗</span>' : '<span class="tile-soon">Coming soon</span>');
-      if (open) tap(b, function () { Speech.say(t.say); location.hash = "#t/" + sid + "/" + t.id; });
+      if (open) tap(b, function () { Speech.say(t.say, null, { force: true }); location.hash = "#t/" + sid + "/" + t.id; }, { nav: true });
       box.appendChild(b);
     });
     show("subject", ["Home", s.name], "#subjects"); setHear(s.say);
@@ -55,13 +86,16 @@
   function drawTopic(sid, tid) {
     var s = K1.subject(sid), t = K1.topic(sid, tid); if (!t) { location.hash = "#subjects"; return; }
     $("topicTitle").textContent = t.name;
-    var box = $("actList"), got = {}; box.innerHTML = "";
-    K1Store.stickers().forEach(function (x) { got[x.act] = true; });
+    var box = $("actList"), got = {}, counts = {}; box.innerHTML = "";
+    K1Store.stickers().forEach(function (x) { got[x.act] = true; counts[x.act] = x.count; });
     t.acts.forEach(function (id) {
       var a = A[id], b = document.createElement("button"); b.type = "button"; b.className = "act-card"; b.setAttribute("data-act", id);
-      b.innerHTML = '<span class="act-mark">' + esc(a.card) + '</span><span class="act-name">' + esc(a.title) + (a.sub ? '<small>' + esc(a.sub) + '</small>' : '') + '</span>' +
-        (got[id] ? '<span class="act-got">' + Art.sticker(a.sticker) + '</span>' : '');
-      tap(b, function () { if (a.book) openBook(id); else location.hash = "#play/" + id; });
+      var tries = K1Store.tryCount(id), badge = tries === 0
+        ? '<span class="act-badge new">New</span>'
+        : '<span class="act-badge tried"><span class="badge-car" aria-hidden="true">' + Art.car(a.sticker.color) + '</span>Tried ' + tries + '×</span>';
+      b.innerHTML = badge + '<span class="act-mark">' + esc(a.card) + '</span><span class="act-name">' + esc(a.title) + (a.sub ? '<small>' + esc(a.sub) + '</small>' : '') + '</span>' +
+        (got[id] ? '<span class="act-got">' + Art.sticker(a.sticker, counts[id]) + '</span>' : '');
+      tap(b, function () { if (a.book) openBook(id); else location.hash = "#play/" + id; }, { nav: true });
       box.appendChild(b);
     });
     (t.soon || []).forEach(function (x) { var d = document.createElement("div"); d.className = "act-card soon"; d.innerHTML = '<span class="act-mark">' + esc(x) + '</span><span class="act-name">Coming soon</span>'; box.appendChild(d); });
@@ -73,7 +107,10 @@
     try { sessionStorage.setItem("k1.bookOpen", id); } catch (e) {}
     // the book shows a small 🚗 小车库 button only when opened like this (works with no browser Back, e.g. from the Home Screen)
     var back = location.href.split("#")[0].split("?")[0] + "#bookdone";
-    Speech.stop(); location.href = A[id].book + "?from=garage&back=" + encodeURIComponent(back);
+    var q = "?from=garage&back=" + encodeURIComponent(back);
+    // Headless WebKit crashes on the book's real speechSynthesis path; keep test mode when the garage is under ?test=1.
+    if (/[?&]test=1/.test(location.search)) q += "&test=1";
+    Speech.stop(); location.href = A[id].book + q;
   }
   function bookReturn() { var v = null; try { v = sessionStorage.getItem("k1.bookOpen"); } catch (e) {} return v; }
   $("bookdoneCar").innerHTML = Art.car("red");
@@ -86,11 +123,12 @@
   function startPlay(id) {
     var a = A[id]; if (!a || a.book) { location.hash = "#subjects"; return; }
     var s = K1.subject(a.subject), t = K1.topic(a.subject, a.topic);
-    play = { id: id, a: a, phase: "lesson", item: 0, miss: 0, results: [], started: true, busy: false };
+    play = { id: id, a: a, phase: "lesson", item: 0, miss: 0, results: [], started: true, busy: false, lessonBusy: false };
+    K1Store.addTry(id); // count an attempt when the activity opens (not on remount of same play)
     show("play", [s.name, t.name, a.title], null);
     renderLesson();
   }
-  function stage(html, cls) { var st = $("stage"); st.className = cls || ""; st.innerHTML = html; return st; }
+  function stage(html, cls) { var st = $("stage"); st.className = cls || ""; st.innerHTML = html; screenBusyUntil = 0; return st; }
 
   function renderLesson() {
     var a = play.a, L = a.lesson;
@@ -104,14 +142,21 @@
       [].forEach.call(st.querySelectorAll(".lesson-item"), function (b) {
         tap(b, function () {
           var it = L.items.filter(function (x) { return x.id === b.getAttribute("data-item"); })[0];
+          // spam on the same picture while it is speaking is ignored; a new picture may interrupt
+          if (seen[it.id] && play.lessonBusy) return;
+          var wasNew = !seen[it.id];
           b.classList.add("seen"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); seen[it.id] = 1;
-          Speech.say(it.say, function () { if (Object.keys(seen).length === L.items.length) readyFlag(); });
+          play.lessonBusy = true;
+          Speech.say(it.say, function () {
+            play.lessonBusy = false;
+            if (Object.keys(seen).length === L.items.length) readyFlag();
+          }, wasNew ? { force: true } : null);
         });
       });
     } else if (L.type === "countRounds") {
       play.round = 0; drawRound();
     } else if (Lessons[L.type]) { play.round = 0; Lessons[L.type](); if (L.type !== "drivePast") return; }
-    Speech.say(a.intro);
+    Speech.say(a.intro, null, { force: true });
   }
   function drawRound() {
     var a = play.a, L = a.lesson, n = L.rounds[play.round], c = 0;
@@ -119,18 +164,19 @@
       '</div><div class="count-big" id="countBig"></div><div class="ready-row"></div>', "lesson count");
     [].forEach.call(st.querySelectorAll(".park-car"), function (b) {
       tap(b, function () {
-        if (b.classList.contains("seen")) return;
+        if (b.classList.contains("seen") || play.lessonBusy) return;
         c++; b.classList.add("seen"); b.querySelector(".count-tag").textContent = c;
-        var done = c === n;
+        var done = c === n; play.lessonBusy = true;
         Speech.say([[K1.EN_NUM[c], "en"]].concat(done ? [[K1.EN_NUM[n] + " cars!", "en"]] : []), function () {
+          play.lessonBusy = false;
           if (!done) return;
           $("countBig").textContent = n;
           if (play.round < L.rounds.length - 1) {
             var nx = document.createElement("button"); nx.type = "button"; nx.className = "big go next-round"; nx.innerHTML = '<span class="ico">➡️</span><span>More cars</span>';
-            tap(nx, function () { play.round++; drawRound(); Speech.say(K1.UI.tapEachCar); });
+            tap(nx, function () { if (play.lessonBusy) return; play.round++; drawRound(); Speech.say(K1.UI.tapEachCar, null, { force: true }); }, { nav: true });
             document.querySelector("#stage .ready-row").appendChild(nx);
           } else readyFlag();
-        });
+        }, { force: true });
       });
     });
   }
@@ -152,7 +198,7 @@
     var L = play.a.lesson;
     if (play.round < L.rounds.length - 1) {
       var nx = document.createElement("button"); nx.type = "button"; nx.className = "big go next-round"; nx.innerHTML = '<span class="ico">➡️</span><span>More cars</span>';
-      tap(nx, function () { play.round++; redraw(true); }); rowReady().appendChild(nx);
+      tap(nx, function () { play.round++; redraw(true); }, { nav: true }); rowReady().appendChild(nx);
       if (more) Speech.say(more);
     } else readyFlag();
   }
@@ -165,13 +211,13 @@
       var slots = [].slice.call(st.querySelectorAll(".slot"));
       function arrive() { var b = slots[k]; b.style.visibility = "visible"; b.classList.add("drive-in", "next"); }
       slots.forEach(function (b, i) { tap(b, function () {
-        if (i !== k || b.classList.contains("seen")) return;
+        if (i !== k || b.classList.contains("seen") || play.lessonBusy) return;
         b.classList.add("seen"); b.classList.remove("next"); b.querySelector(".count-tag").textContent = R.from + i; k++;
-        var last = k === total;
-        Speech.say([R.nums[i]].concat(last ? R.end : []), function () { if (last) nextOrReady(L.more, draw); });
+        var last = k === total; play.lessonBusy = true;
+        Speech.say([R.nums[i]].concat(last ? R.end : []), function () { play.lessonBusy = false; if (last) nextOrReady(L.more, draw); }, { force: true });
         if (!last) setTimeout(arrive, Speech.test ? 0 : 350);
       }); });
-      arrive(); if (again) Speech.say(K1.UI.tapEachCar);
+      arrive(); if (again) Speech.say(K1.UI.tapEachCar, null, { force: true });
     },
     // tap waiting cars to park them in the numbered bay, until the bay is full
     park: function draw(again) {
@@ -179,12 +225,13 @@
       var st = stage('<div class="bay-wrap"><div class="bay-sign">' + R.n + '</div><div class="bay" id="bay"></div></div>' +
         '<div class="waiting">' + range(10).map(function (i) { return '<button type="button" class="wait-car" data-i="' + i + '">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</button>'; }).join("") + '</div><div class="ready-row"></div>', "lesson park");
       [].forEach.call(st.querySelectorAll(".wait-car"), function (b) { tap(b, function () {
-        if (c >= R.n) { Speech.say(L.full); return; }
+        if (play.lessonBusy) return;
+        if (c >= R.n) { Speech.say(L.full, null, { force: true }); return; }
         c++; var m = document.createElement("span"); m.className = "mini parked"; m.innerHTML = b.innerHTML; $("bay").appendChild(m); b.style.visibility = "hidden";
-        var full = c === R.n;
-        Speech.say([R.nums[c - 1]].concat(full ? R.end : []), function () { if (full) nextOrReady(null, draw); });
+        var full = c === R.n; play.lessonBusy = true;
+        Speech.say([R.nums[c - 1]].concat(full ? R.end : []), function () { play.lessonBusy = false; if (full) nextOrReady(null, draw); }, { force: true });
       }); });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start));
+      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
     },
     // two car parks: tap each to count, then the one with more (or fewer) glows
     compare: function draw(again) {
@@ -200,7 +247,7 @@
           Speech.say(R.end, function () { nextOrReady(L.next, draw); });
         });
       }); });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start));
+      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
     },
     // one car at a time: tap the garage it belongs in (a wrong tap just gets a friendly correction)
     sort: function () {
@@ -225,7 +272,7 @@
         }); });
         show();
       }
-      drawPhase(); Speech.say(play.a.intro.concat(L.phases[0].start, L.where));
+      drawPhase(); Speech.say(play.a.intro.concat(L.phases[0].start, L.where), null, { force: true });
     },
     // n cars parked; tap the new car, it drives in, the cars are counted: "Now n+1 cars!"
     oneMore: function draw(again) {
@@ -242,7 +289,7 @@
           else Speech.say(R.end, function () { play.moved = false; nextOrReady(null, draw); });
         });
       });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start));
+      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
     }
   };
 
@@ -250,8 +297,8 @@
   function readyFlag() {
     var row = document.querySelector("#stage .ready-row"); if (!row || row.querySelector(".to-check")) return;
     var b = document.createElement("button"); b.type = "button"; b.className = "big go to-check"; b.innerHTML = '<span class="ico">🏁</span><span>Car game</span>';
-    tap(b, function () { startCheck(); }); row.appendChild(b);
-    Speech.say(play.a.readyLine);
+    tap(b, function () { if (play.phase !== "lesson") return; startCheck(); }, { nav: true }); row.appendChild(b);
+    Speech.say(play.a.readyLine, null, { force: true });
   }
 
   /* ----- the no-fail check: wrong tap = calm pause, the question again, then a hint; second miss = the answer is shown, he taps it.
@@ -274,7 +321,7 @@
     lockOpts(true);
     var P = play, my = ++P.lockSeq, done = false, t = setTimeout(function () { if (play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }, maxMs(lines));
     function fin() { if (done || play !== P || my !== P.lockSeq) return; done = true; clearTimeout(t); if (then) then(); else lockOpts(false); }
-    Speech.say(lines, fin);
+    Speech.say(lines, fin, { force: true });
   }
   function startCheck() { play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0; drawItem(); }
   function drawItem() {
@@ -300,7 +347,7 @@
       play.results.push({ label: it.label, result: play.reveal ? "shown" : play.miss ? "hint" : "first" });
       var P = play, went = false; // move on when "Yes!" ends, or after a fallback if the audio never reports its end
       var go = function () { if (went || play !== P || P.phase !== "check") return; went = true; setTimeout(function () { if (play === P && P.phase === "check") nextItem(); }, Speech.test ? 10 : 400); };
-      Speech.say(it.yes, go); setTimeout(function () { if (!went && play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; go(); }, maxMs(it.yes));
+      Speech.say(it.yes, go, { force: true }); setTimeout(function () { if (!went && play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; go(); }, maxMs(it.yes));
       return;
     }
     play.miss++;
@@ -331,10 +378,10 @@
     function fin() { if (done || play !== P || my !== P.lockSeq) return; done = true; clearTimeout(t); lockOpts(false); }
     Speech.say([first], function step() {
       if (play !== P || my !== P.lockSeq) return;
-      if (i < cars.length && i < lines.length) { cars[i].classList.add("seen"); Speech.say([lines[i]], step); i++; }
-      else if (i < lines.length) Speech.say(lines.slice(i), fin);
+      if (i < cars.length && i < lines.length) { cars[i].classList.add("seen"); Speech.say([lines[i]], step, { force: true }); i++; }
+      else if (i < lines.length) Speech.say(lines.slice(i), fin, { force: true });
       else fin();
-    });
+    }, { force: true });
   }
   function nextItem() {
     play.item++;
@@ -343,6 +390,7 @@
   function finishActivity() {
     var a = play.a;
     K1Store.addLog({ subject: a.subject, topic: a.topic, act: a.id, title: a.title, done: true, items: play.results });
+    K1Store.markFinished(a.id);
     play.started = false; startSticker(a.id);
   }
 
@@ -350,35 +398,45 @@
   function startSticker(id) {
     var a = A[id];
     if (!play || play.id !== id) play = { id: id, a: a };
-    play.phase = "sticker"; play.started = false;
+    if (play.phase === "sticker" && play.stickerAdded) return; // spam: do not double-add
+    play.phase = "sticker"; play.started = false; play.stickerAdded = true; play.stickerPut = false;
     var n = K1Store.addSticker(a.sticker, id); play.stickerCount = n;
     var s = K1.subject(a.subject);
     show("play", [s.name, a.title, "Sticker"], null);
-    var st = stage('<p class="ask">' + (n > 1 ? "You finished again! One more for your book." : "You finished! A sticker for your book.") + '</p><div class="sticker-big">' + Art.sticker(a.sticker, n) + '</div>' +
+    var ask = n === 5 ? "Your car became a super car!" : (n > 1 ? "You finished again! One more for your book." : "You finished! A sticker for your book.");
+    var st = stage('<p class="ask">' + ask + '</p><div class="sticker-big">' + Art.sticker(a.sticker, n) + '</div>' +
       '<div class="ready-row"><button type="button" class="big go" id="putSticker"><span class="ico">📒</span><span>Put it in my book</span></button></div>', "sticker-screen");
-    var lines = n > 1 ? K1.UI.stickerAgain : K1.UI.sticker; setHear(lines);
-    tap($("putSticker"), endScreen);
-    Speech.say(lines);
+    var lines = n === 5 ? K1.UI.superCar : (n > 1 ? K1.UI.stickerAgain : K1.UI.sticker); setHear(lines);
+    tap($("putSticker"), function () {
+      if (play.stickerPut || play.phase !== "sticker") return;
+      play.stickerPut = true; screenBusyUntil = 0; endScreen();
+    }, { nav: true });
+    Speech.say(lines, null, { force: true });
   }
   function endScreen() {
     var a = play.a, p = K1Store.person(), line = a.endLine(p);
+    if (play.phase === "end") return; // already advanced
     play.phase = "end";
     var text = line.map(function (l) { return l[0]; }).join(" ");
     stage('<div class="park-scene">' + Art.car(a.sticker.color) + '<div class="garage">🅿️</div></div><p class="ask end-text">' + esc(text) + '</p>' +
       '<div class="ready-row"><button type="button" class="big plain" id="endHome"><span class="ico">🏠</span><span>Home</span></button>' +
       '<button type="button" class="big plain" id="endBook"><span class="ico">⭐</span><span>Sticker book</span></button></div>', "end");
     setHear(line);
-    tap($("endHome"), function () { play = null; location.hash = "#home"; });
-    tap($("endBook"), function () { play = null; location.hash = "#stickers"; });
-    Speech.say(line); // plays once; nothing starts after it
+    tap($("endHome"), function () { play = null; location.hash = "#home"; }, { nav: true });
+    tap($("endBook"), function () { play = null; location.hash = "#stickers"; }, { nav: true });
+    Speech.say(line, null, { force: true }); // plays once; nothing starts after it
   }
 
   /* ---------- Home button: ask before leaving a game under way ---------- */
   tap($("homeBtn"), function () {
-    if (play && (play.phase === "lesson" || play.phase === "check")) { Speech.stop(); $("leave").hidden = false; return; }
+    if (play && (play.phase === "lesson" || play.phase === "check")) {
+      Speech.stop(); screenBusyUntil = 0; $("homeBtn")._k1TapAt = 0; // allow Home again after Keep playing
+      $("leave").hidden = false; return;
+    }
     play = null; location.hash = "#home";
-  });
-  tap($("leaveNo"), function () { $("leave").hidden = true; });
+  }, { nav: true });
+  // leave dialog buttons: no nav busy (overlay must respond immediately after Home opened it)
+  tap($("leaveNo"), function () { $("leave").hidden = true; screenBusyUntil = 0; $("homeBtn")._k1TapAt = 0; });
   tap($("leaveYes"), function () {
     $("leave").hidden = true;
     if (play) K1Store.addLog({ subject: play.a.subject, topic: play.a.topic, act: play.id, title: play.a.title, done: false, items: play.results || [] });
@@ -386,8 +444,9 @@
   });
   tap($("hearBtn"), function () {
     if (!hearLines) return;
+    if (Speech.speaking && Speech.speaking()) return; // deliberate replay only after current line ends
     if (play && play.phase === "check") { if (!play.locked && !play.busy && !play.reveal) sayLocked(hearLines); return; } // replay the question, answers locked
-    Speech.say(hearLines);
+    Speech.say(hearLines); // no force: ignored while speaking
   });
 
   /* ---------- sticker book ---------- */
@@ -463,7 +522,7 @@
     $("newName").blur(); Speech.say(pl.name ? [["Hello, " + pl.name + "!", "en"]] : K1.UI.hello); location.hash = "#home";
   });
   function drawChip() { var pl = K1Store.player(); var c = $("playerChip"); c.innerHTML = pl ? Art.car(pl.color) + '<span></span>' : ""; if (pl) c.querySelector("span").textContent = label(pl); }
-  tap($("playerChip"), function () { Speech.say(K1.UI.who); location.hash = "#who"; });
+  tap($("playerChip"), function () { Speech.say(K1.UI.who, null, { force: true }); location.hash = "#who"; }, { nav: true });
 
   /* ---------- parents: one child at a time (no ranking, no comparison, no scores) ---------- */
   var SUBNAME = { en: "English", ma: "Maths", zh: "Chinese" }, child = null;
@@ -558,5 +617,5 @@
   if ("serviceWorker" in navigator && /^https?:/.test(location.protocol) && (!Speech.test || /[?&]sw=1/.test(location.search))) {
     navigator.serviceWorker.register("sw.js").catch(function () {});
   }
-  window.__k1 = { PAUSE: PAUSE, get play() { return play; }, said: Speech.said, stats: Speech.stats, store: K1Store };
+  window.__k1 = { PAUSE: PAUSE, get play() { return play; }, said: Speech.said, stats: Speech.stats, store: K1Store, screenBusy: isScreenBusy, TAP_MS: TAP_MS };
 })();

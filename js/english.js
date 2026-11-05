@@ -3,6 +3,12 @@
    Every spoken line is a [text, "en"|"snd"] pair in the data so tools/lines.js can record it. Pictures are emoji or simple SVG, no photos. */
 (function () {
   "use strict";
+  var CAR_MAP = {"en-s": {"color": "blue", "everyday": {"id": "toyota-prius-taxi", "name": "Toyota Prius", "prompt": "blue Toyota Prius Singapore taxi with a yellow rectangular roof sign (solid yellow, no flag colors)"}, "super": {"id": "ferrari-488", "name": "Ferrari 488", "prompt": "blue Ferrari 488 sports car"}, "tier10": "ferrari-488"}, "en-a": {"color": "red", "everyday": {"id": "vw-beetle", "name": "VW Beetle", "prompt": "classic red Volkswagen Beetle"}, "super": {"id": "bugatti-chiron", "name": "Bugatti Chiron", "prompt": "red Bugatti Chiron"}}, "en-t": {"color": "yellow", "everyday": {"id": "school-bus", "name": "Yellow Bus", "prompt": "yellow short school-style bus / shuttle van"}, "super": {"id": "koenigsegg-jesko", "name": "Koenigsegg Jesko", "prompt": "yellow Koenigsegg Jesko"}}, "en-i": {"color": "purple", "everyday": {"id": "tesla-model3", "name": "Tesla Model 3", "prompt": "purple Tesla Model 3 electric sedan"}, "super": {"id": "pagani-huayra", "name": "Pagani Huayra", "prompt": "purple Pagani Huayra"}}, "en-p": {"color": "orange", "everyday": {"id": "fiat-500", "name": "Fiat 500", "prompt": "orange Fiat 500 city car"}, "super": {"id": "aston-martin-vantage", "name": "Aston Martin Vantage", "prompt": "orange Aston Martin Vantage"}}, "en-n": {"color": "green", "everyday": {"id": "subaru-forester", "name": "Subaru Forester", "prompt": "green Subaru Forester SUV"}, "super": {"id": "ford-gt", "name": "Ford GT", "prompt": "green Ford GT"}}, "en-fs1": {"color": "blue", "everyday": {"id": "nissan-leaf", "name": "Nissan Leaf", "prompt": "blue Nissan Leaf hatchback"}, "super": {"id": "lotus-evora", "name": "Lotus Evora", "prompt": "blue Lotus Evora"}}, "en-fs2": {"color": "orange", "everyday": {"id": "mazda-mx5", "name": "Mazda MX-5", "prompt": "orange Mazda MX-5 Miata convertible"}, "super": {"id": "ferrari-f8", "name": "Ferrari F8", "prompt": "orange Ferrari F8 Tributo"}}, "en-rhyme": {"color": "yellow", "everyday": {"id": "ice-cream-van", "name": "Ice-cream Van", "prompt": "yellow ice-cream van with a soft-serve cone silhouette on the side (no text)"}, "super": {"id": "lamborghini-huracan", "name": "Lamborghini Huracan", "prompt": "yellow Lamborghini Huracan"}}, "en-sight1": {"color": "green", "everyday": {"id": "land-rover", "name": "Land Rover", "prompt": "green Land Rover Defender"}, "super": {"id": "mclaren-p1", "name": "McLaren P1", "prompt": "green McLaren P1"}}, "en-sight2": {"color": "red", "everyday": {"id": "fire-engine", "name": "Fire Engine", "prompt": "red fire engine truck with ladder"}, "super": {"id": "porsche-cayman-gt4", "name": "Porsche Cayman", "prompt": "red Porsche Cayman GT4"}}, "en-listen": {"color": "blue", "everyday": {"id": "police-car", "name": "Police Car", "prompt": "blue and white police sedan with a light bar on the roof (no text, no badges)"}, "super": {"id": "bugatti-veyron", "name": "Bugatti Veyron", "prompt": "blue Bugatti Veyron"}}};
+  function withCar(sticker, actId) {
+    var c = CAR_MAP[actId]; if (!c) return sticker;
+    var out = { color: sticker.color, mark: sticker.mark, car: c.everyday.id, super: c.super.id, model: c.everyday.name, superModel: c.super.name }; out.tier10 = c.tier10 || c.super.id; return out;
+  }
+
   var ACTS = K1.ACTS, SND = K1.SND;
   function cap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
   var YES = ["Yes!", "en"], THIS = ["This one!", "en"], AGAIN = ["Let's listen again.", "en"], GAME = ["Now a little car game.", "en"];
@@ -29,7 +35,7 @@
   function letter(L, items, checks) {
     var S = SND[L], ask = [["Which one starts with", "en"], S];
     return add("en-" + L, "letters", {
-      head: '<div class="big-letter">' + L + '</div>', title: "Letter " + L, titleSay: [["Letter " + L + ".", "en"]], card: L, sticker: { color: COL[L], mark: L },
+      head: '<div class="big-letter">' + L + '</div>', title: "Letter " + L, titleSay: [["Letter " + L + ".", "en"]], card: L, sticker: withCar({ color: COL[L], mark: L }, "en-" + L),
       intro: [["This is the letter " + L + ".", "en"], ["It makes this sound.", "en"], S, ["Tap each picture on the truck.", "en"]],
       lesson: { type: "tapAll", items: items.map(function (k) { return { id: k, html: W[k].html, label: W[k].word, say: [word(k), S, word(k)] }; }) },
       readyLine: [["Well done. Now a little car game.", "en"]],
@@ -60,7 +66,7 @@
   /* 2. First sounds: mixed review of three letter sounds (hear a sound, find the picture) */
   function firstSounds(id, letters, pics, checks, color) {
     return add(id, "initial", {
-      title: "First sounds " + letters.join(" "), titleSay: [["First sounds.", "en"]], card: letters.join(" "), sticker: { color: color, mark: letters[0] + letters[1] + letters[2] },
+      title: "First sounds " + letters.join(" "), titleSay: [["First sounds.", "en"]], card: letters.join(" "), sticker: withCar({ color: color, mark: letters[0] + letters[1] + letters[2] }, id),
       intro: [["Each picture has a first sound.", "en"], ["Tap each picture.", "en"]],
       lesson: { type: "tapAll", items: pics.map(function (k, i) { var L = letters[i >> 1];
         return { id: k, html: '<span class="li-letter">' + L + '</span>' + W[k].html, label: W[k].word, say: [SND[L], word(k)] }; }) },
@@ -83,7 +89,7 @@
   /* 3. Rhyming: car / star, truck / duck, cat / hat, bee / tree */
   function pair(a, b) { return [cap(W[a].word) + ", " + W[b].word + ".", "en"]; }
   var RH = add("en-rhyme", "rhymes", {
-    title: "Rhyme time", titleSay: [["Rhyme time.", "en"]], card: "🚗⭐", sticker: { color: "yellow", mark: "⭐" },
+    title: "Rhyme time", titleSay: [["Rhyme time.", "en"]], card: "🚗⭐", sticker: withCar({ color: "yellow", mark: "⭐" }, "en-rhyme"),
     intro: [["Some words sound the same at the end.", "en"], ["Tap each pair.", "en"]],
     lesson: { type: "tapAll", cls: "wrap", items: [["car", "star"], ["truck", "duck"], ["cat", "hat"], ["bee", "tree"], ["moon", "spoon"], ["cake", "snake"]].map(function (x) {
       return { id: x[0], html: '<span class="emoji pair">' + W[x[0]].html + W[x[1]].html + '</span>', label: W[x[0]].word + " " + W[x[1]].word, say: [pair(x[0], x[1]), ["They rhyme!", "en"]] }; }) },
@@ -102,7 +108,7 @@
   var NUMW = ["", "one letter", "two letters", "three letters", "four letters"];
   function sight(id, title, card, color, words, checks, readyExtra) {
     return add(id, "sight", {
-      title: title, titleSay: [[title + ".", "en"]], card: card, sticker: { color: color, mark: card },
+      title: title, titleSay: [[title + ".", "en"]], card: card, sticker: withCar({ color: color, mark: card }, id),
       intro: [["These are words we can read.", "en"], ["Tap each word.", "en"]],
       lesson: { type: "tapAll", items: words.map(function (x) {
         return { id: x[0], html: '<span class="word-card">' + x[0] + '</span><span class="emoji sm">' + x[1] + '</span>', label: "", say: [[cap(x[0]) + ".", "en"], [x[2], "en"]] }; }) },
@@ -127,7 +133,7 @@
   /* 5. Listen and pick: two words to hold in mind (big or small, and a colour) */
   function desc(id) { var x = id.split("-"); return x[0] + " " + x[1] + " car"; }
   var LP = add("en-listen", "listen", {
-    title: "Big and small cars", titleSay: [["Big and small cars.", "en"]], card: "🚙", sticker: { color: "blue", mark: "👂" },
+    title: "Big and small cars", titleSay: [["Big and small cars.", "en"]], card: "🚙", sticker: withCar({ color: "blue", mark: "👂" }, "en-listen"),
     intro: [["Listen carefully.", "en"], ["Tap each car.", "en"]],
     lesson: { type: "tapAll", cls: "wrap", items: ["big-red", "small-blue", "big-yellow", "small-green", "big-green", "small-red"].map(function (id) {
       var x = id.split("-"); return { id: id, html: Art.sizedCar(x[0], x[1]), label: x[0] + " " + x[1], say: [["A " + desc(id) + ".", "en"]] }; }) },

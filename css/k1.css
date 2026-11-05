@@ -273,3 +273,18 @@ body[data-screen="parent"] { background: var(--sky); }
 .truck.wrap.hanzi-row .hz-pic { font-size: 46px; }
 .truck.wrap.hanzi-row .hz-pic .sort-car.big .car { width: 118px; }
 .truck.wrap.hanzi-row .hz-pic .sort-car.small .car { width: 70px; }
+
+/* real-car stickers */
+.sticker-img { width: 140px; height: 140px; object-fit: contain; display: block; pointer-events: none; }
+.sticker-model { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: 11px; font-weight: 700; color: #37474f; background: rgba(255,255,255,.92); padding: 2px 8px; border-radius: 10px; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
+.sticker.super { border-color: #ffd54f; box-shadow: 0 0 0 4px rgba(255,213,79,.55), 0 4px 12px rgba(0,0,0,.2); }
+.sticker.tier10 { box-shadow: 0 0 0 5px rgba(255,193,7,.7), 0 6px 16px rgba(0,0,0,.25); }
+.sticker-big .sticker-model { font-size: 14px; bottom: 6px; }
+
+/* Tried / New badges on activity cards — large calm pills for a 4-year-old on iPad */
+.act-badge { position: absolute; top: 8px; left: 8px; z-index: 2; font-size: 20px; font-weight: 800; line-height: 1.2; padding: 7px 14px; border-radius: 999px; letter-spacing: .01em; box-shadow: 0 2px 0 rgba(0,0,0,.08); max-width: calc(100% - 90px); }
+.act-badge.new { background: #c8e6c9; color: #1b5e20; border: 2px solid #81c784; }
+.act-badge.tried { background: #e3f2fd; color: #0d47a1; border: 2px solid #90caf9; display: inline-flex; align-items: center; gap: 6px; }
+.act-badge .badge-car { width: 22px; height: 14px; flex: 0 0 auto; }
+.act-badge .badge-car .car { width: 22px; height: auto; display: block; }
+.act-card .act-mark { margin-top: 28px; }
