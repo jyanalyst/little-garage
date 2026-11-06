@@ -1,0 +1,12 @@
+{
+  "name": "little-garage",
+  "private": true,
+  "scripts": {
+    "test:pools": "node tests/pools.js",
+    "test:ui": "playwright test",
+    "test": "node tests/pools.js && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
