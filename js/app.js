@@ -1,5 +1,5 @@
 /* Little Garage 小车库: menu levels by address hash (like the maths games menu), one activity per session,
-   3-item no-fail check, a sticker for finishing, parents-only log. No network code, no timers shown, no scores. */
+   a 6-question no-fail check drawn from a larger pool, a sticker for finishing, parents-only log. No network code, no timers shown, no scores. */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
@@ -119,7 +119,7 @@
     startSticker(id); });
   tap($("bookNo"), function () { try { sessionStorage.removeItem("k1.bookOpen"); } catch (e) {} location.hash = "#t/zh/story"; });
 
-  /* ---------- an activity: intro -> lesson -> ready -> check (3, no-fail) -> sticker -> end ---------- */
+  /* ---------- an activity: intro -> lesson -> ready -> check (6 drawn from the pool, no-fail) -> sticker -> end ---------- */
   function startPlay(id) {
     var a = A[id]; if (!a || a.book) { location.hash = "#subjects"; return; }
     var s = K1.subject(a.subject), t = K1.topic(a.subject, a.topic);
@@ -135,7 +135,10 @@
     play.phase = "lesson"; setHear(a.intro);
     if (L.type === "tapAll") {
       var head = a.head || '';
-      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : L.items.length > 4 ? ' six' : '') + '">' + L.items.map(function (it) {
+      // pictures shuffle each open; a fixed row (the AB pattern) stays in teaching order
+      var items = (L.fixed || L.row) ? L.items.slice() : K1.shuffle(L.items);
+      play.lessonItems = items;
+      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : items.length > 4 ? ' six' : '') + '">' + items.map(function (it) {
         return '<button type="button" class="lesson-item" data-item="' + it.id + '">' + it.html + '<span class="li-label">' + (it.zh ? zhText(it.zh) : esc(it.label)) + '</span></button>'; }).join("") +
         '</div><div class="ready-row"></div>', "lesson tapall");
       var seen = {};
@@ -323,12 +326,16 @@
     function fin() { if (done || play !== P || my !== P.lockSeq) return; done = true; clearTimeout(t); if (then) then(); else lockOpts(false); }
     Speech.say(lines, fin, { force: true });
   }
-  function startCheck() { play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0; drawItem(); }
+  function startCheck() {
+    play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0;
+    play.checks = K1.pick(play.a.check, K1.CHECK_N); // 6 of the pool, no repeats this run
+    drawItem();
+  }
   function drawItem() {
-    var a = play.a, it = a.check[play.item]; play.miss = 0; play.busy = false; play.reveal = false;
+    var a = play.a, it = play.checks[play.item]; play.miss = 0; play.busy = false; play.reveal = false;
     var promptHtml = a.lang === "zh" ? zhText({ zh: it.ask, py: it.askPy }) : esc(it.ask);
     var scene = it.scene ? sceneHtml(it.scene) : it.n ? '<div class="carpark small">' + range(it.n).map(function (i) { return '<button type="button" class="park-car" data-i="' + i + '">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</button>'; }).join("") + '</div>' : '';
-    var st = stage('<div class="flags">' + a.check.map(function (_, i) { return '<span class="flag' + (i < play.item ? " done" : i === play.item ? " now" : "") + '">🚩</span>'; }).join("") + '</div>' +
+    var st = stage('<div class="flags">' + play.checks.map(function (_, i) { return '<span class="flag' + (i < play.item ? " done" : i === play.item ? " now" : "") + '">🚩</span>'; }).join("") + '</div>' +
       '<p class="ask">' + promptHtml + '</p>' + scene +
       '<div class="options locked' + (it.wide ? ' wide' : '') + '">' + it.options.map(function (o) { return '<button type="button" class="option" data-opt="' + esc(o) + '">' + it.optionHtml(o) + '</button>'; }).join("") + '</div>', "check");
     setHear(it.prompt);
@@ -339,7 +346,7 @@
   }
   function choose(b) {
     if (play.busy || play.locked) return; // locked while the question or a replay is being said
-    var it = play.a.check[play.item], o = b.getAttribute("data-opt"), right = o === it.answer;
+    var it = play.checks[play.item], o = b.getAttribute("data-opt"), right = o === it.answer;
     var opts = [].slice.call(document.querySelectorAll("#stage .option")), rightBtn = opts.filter(function (x) { return x.getAttribute("data-opt") === it.answer; })[0];
     if (play.reveal && !right) return; // after the answer is shown only the answer can be tapped
     if (right) {
@@ -385,7 +392,7 @@
   }
   function nextItem() {
     play.item++;
-    if (play.item < play.a.check.length) drawItem(); else finishActivity();
+    if (play.item < play.checks.length) drawItem(); else finishActivity();
   }
   function finishActivity() {
     var a = play.a;

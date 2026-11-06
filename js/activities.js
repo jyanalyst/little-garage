@@ -1,6 +1,6 @@
 /* What is in the app: subjects -> topics -> activities (MOE NEL Framework 2022, pitched at the easy end for K1).
    Topics with no activity yet show "Coming soon" (same rule as the maths games menu).
-   Each activity: a short lesson (4-6 things), then a 6-item no-fail check, then a sticker. The story book has no check.
+   Each activity: a short lesson (4-6 things), then a no-fail car game that picks 6 questions at random from a pool of about 12, then a sticker. The story book has no check.
    Every spoken line is [text, lang]; lang "snd" is the recorded letter sound (sss), spoken as "sss" by the device voice if no clip.
    tools/lines.js collects every fixed line from here for recording (tools/gen_tts.js). */
 var K1 = (function () {
@@ -42,8 +42,9 @@ var K1 = (function () {
       lesson: { type: "tapAll", items: ["sun", "sock", "snake", "seal", "sandwich", "six"].map(function (k) {
         return { id: k, html: P[k].html, label: P[k].word, say: [w(k), SSS, w(k)] }; }) },
       readyLine: [["Well done. Now a little car game.", "en"]],
-      check: [["sun", "dog", "hat"], ["cat", "sock", "pig"], ["fish", "ball", "snake"], ["moon", "seal", "dog"], ["sandwich", "bus", "cat"], ["hat", "pig", "six"]].map(function (opts, i) {
-        var a = ["sun", "sock", "snake", "seal", "sandwich", "six"][i];
+      check: [["sun", ["sun", "dog", "hat"]], ["sock", ["cat", "sock", "pig"]], ["snake", ["fish", "ball", "snake"]], ["seal", ["moon", "seal", "dog"]], ["sandwich", ["sandwich", "bus", "cat"]], ["six", ["hat", "pig", "six"]],
+              ["sun", ["moon", "sun", "cat"]], ["sock", ["sock", "fish", "ball"]], ["snake", ["dog", "hat", "snake"]], ["seal", ["bus", "cat", "seal"]], ["sandwich", ["pig", "sandwich", "moon"]], ["six", ["ball", "dog", "six"]]].map(function (x) {
+        var a = x[0], opts = x[1];
         return { options: opts, answer: a, label: a, ask: "Which one starts with sss?", prompt: ASK_S,
           optionHtml: function (o) { return P[o].html; },
           hint: opts.map(w), // after the question is replayed: just the three words, so he hears each first sound
@@ -57,8 +58,9 @@ var K1 = (function () {
       intro: [["Let's count the cars in the car park.", "en"], ["Tap each car once.", "en"]],
       lesson: { type: "countRounds", rounds: [2, 3, 4, 5], colors: ["red", "blue", "yellow", "green", "orange"] },
       readyLine: [["Great counting. Now a little car game.", "en"]],
-      check: [3, 5, 4, 2, 4, 5].map(function (n, i) {
-        var opts = [[2, 3, 5], [4, 5, 3], [4, 2, 5], [3, 1, 2], [5, 4, 3], [3, 5, 4]][i];
+      check: [[3, [2, 3, 5]], [5, [4, 5, 3]], [4, [4, 2, 5]], [2, [3, 1, 2]], [4, [5, 4, 3]], [5, [3, 5, 4]],
+              [2, [2, 4, 5]], [3, [1, 3, 4]], [3, [3, 5, 1]], [4, [6, 4, 2]], [5, [5, 1, 3]], [2, [1, 5, 2]]].map(function (x) {
+        var n = x[0], opts = x[1];
         return { n: n, label: n + " cars", ask: "How many cars?", prompt: [["How many cars?", "en"]], options: opts.map(String), answer: String(n),
           optionHtml: function (o) { return '<span class="numeral">' + o + '</span>'; },
           hint: [["Let's count together.", "en"]].concat(EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; })),
@@ -78,7 +80,9 @@ var K1 = (function () {
         return { id: c, html: Art.car(c), zh: ZH[c], label: ZH[c].zh, say: [["这是" + ZH[c].zh + "的车。", "zh"]] }; }) },
       readyLine: [["真棒！来玩一个小游戏吧。", "zh"]],
       check: [["red", ["red", "blue", "yellow"]], ["blue", ["green", "red", "blue"]], ["yellow", ["yellow", "green", "blue"]],
-              ["green", ["green", "orange", "blue"]], ["purple", ["red", "purple", "yellow"]], ["orange", ["purple", "green", "orange"]]].map(function (x) {
+              ["green", ["green", "orange", "blue"]], ["purple", ["red", "purple", "yellow"]], ["orange", ["purple", "green", "orange"]],
+              ["red", ["orange", "red", "purple"]], ["blue", ["blue", "yellow", "orange"]], ["yellow", ["purple", "yellow", "red"]],
+              ["green", ["yellow", "green", "red"]], ["purple", ["green", "purple", "blue"]], ["orange", ["blue", "orange", "yellow"]]].map(function (x) {
         var a = x[0], z = ZH[a].zh;
         return { answer: a, options: x[1], label: z, ask: z + "的车在哪里？", askPy: ZH[a].py,
           optionHtml: function (o) { return Art.car(o); },
@@ -120,6 +124,20 @@ var K1 = (function () {
   function subject(id) { for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i].id === id) return SUBJECTS[i]; return null; }
   function topic(sid, tid) { var s = subject(sid); if (!s) return null; for (var i = 0; i < s.topics.length; i++) if (s.topics[i].id === tid) return s.topics[i]; return null; }
   function countLines(n) { return EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; }).concat([[EN_NUM[n] + " cars!", "en"]]); }
-  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, SND: SND, P: P, pic: pic, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines };
+  var CHECK_N = 6; // drawn each run; the activity's check array is the full pool
+  function shuffle(list, rnd) {
+    var a = list.slice(), rand = rnd || Math.random, i, j, t;
+    for (i = a.length - 1; i > 0; i--) {
+      j = Math.floor(rand() * (i + 1));
+      t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pick(list, n, rnd) {
+    var k = n == null ? list.length : n;
+    if (k > list.length) k = list.length;
+    return shuffle(list, rnd).slice(0, k);
+  }
+  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, SND: SND, P: P, pic: pic, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines, CHECK_N: CHECK_N, shuffle: shuffle, pick: pick };
 })();
 if (typeof module !== "undefined") module.exports = K1;

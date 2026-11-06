@@ -39,7 +39,9 @@
     words: W([["dad", "爸爸", "bà ba", "👨"], ["mum", "妈妈", "mā ma", "👩"], ["grandpa", "爷爷", "yé ye", "👴"], ["grandma", "奶奶", "nǎi nai", "👵"], ["brother", "哥哥", "gē ge", "👦"], ["sister", "姐姐", "jiě jie", "👧"]]),
     items: ["dad", "mum", "grandpa", "grandma", "brother", "sister"],
     check: [["dad", ["dad", "grandma", "sister"]], ["grandma", ["grandpa", "grandma", "mum"]], ["brother", ["sister", "dad", "brother"]],
-            ["mum", ["mum", "brother", "grandpa"]], ["grandpa", ["sister", "grandpa", "dad"]], ["sister", ["grandma", "mum", "sister"]]],
+            ["mum", ["mum", "brother", "grandpa"]], ["grandpa", ["sister", "grandpa", "dad"]], ["sister", ["grandma", "mum", "sister"]],
+            ["dad", ["brother", "dad", "mum"]], ["grandma", ["sister", "brother", "grandma"]], ["brother", ["mum", "brother", "grandpa"]],
+            ["mum", ["dad", "mum", "sister"]], ["grandpa", ["grandma", "grandpa", "brother"]], ["sister", ["dad", "sister", "grandpa"]]],
     end: "说说你的家人吗？"
   });
   var BODY = words("zh-body", "body", {
@@ -49,7 +51,9 @@
       ["mouth", "嘴巴", "zuǐ ba", "👄", "嘴巴，说一说。"], ["hand", "手", "shǒu", "✋", "手，拍一拍。"], ["foot", "脚", "jiǎo", "🦶", "脚，跳一跳。"]]),
     items: ["eyes", "ears", "nose", "mouth", "hand", "foot"],
     check: [["eyes", ["eyes", "hand", "foot"]], ["ears", ["nose", "ears", "mouth"]], ["foot", ["hand", "mouth", "foot"]],
-            ["nose", ["nose", "eyes", "hand"]], ["mouth", ["ears", "mouth", "foot"]], ["hand", ["foot", "nose", "hand"]]],
+            ["nose", ["nose", "eyes", "hand"]], ["mouth", ["ears", "mouth", "foot"]], ["hand", ["foot", "nose", "hand"]],
+            ["eyes", ["ears", "eyes", "nose"]], ["ears", ["foot", "hand", "ears"]], ["foot", ["eyes", "foot", "nose"]],
+            ["nose", ["mouth", "nose", "foot"]], ["mouth", ["hand", "eyes", "mouth"]], ["hand", ["ears", "hand", "mouth"]]],
     end: "一起拍拍手吗？"
   });
   var FOOD = words("zh-food", "food", {
@@ -58,7 +62,9 @@
     words: W([["apple", "苹果", "píng guǒ", "🍎"], ["banana", "香蕉", "xiāng jiāo", "🍌"], ["rice", "米饭", "mǐ fàn", "🍚"], ["noodles", "面条", "miàn tiáo", "🍜"], ["egg", "鸡蛋", "jī dàn", "🥚"], ["milk", "牛奶", "niú nǎi", "🥛"]]),
     items: ["apple", "banana", "rice", "noodles", "egg", "milk"],
     check: [["banana", ["apple", "banana", "milk"]], ["noodles", ["noodles", "egg", "rice"]], ["milk", ["egg", "banana", "milk"]],
-            ["apple", ["rice", "apple", "egg"]], ["egg", ["egg", "milk", "noodles"]], ["rice", ["banana", "apple", "rice"]]],
+            ["apple", ["rice", "apple", "egg"]], ["egg", ["egg", "milk", "noodles"]], ["rice", ["banana", "apple", "rice"]],
+            ["banana", ["rice", "banana", "egg"]], ["noodles", ["apple", "noodles", "milk"]], ["milk", ["rice", "milk", "apple"]],
+            ["apple", ["banana", "milk", "apple"]], ["egg", ["rice", "egg", "banana"]], ["rice", ["noodles", "milk", "rice"]]],
     end: "说说你爱吃什么吗？"
   });
   var TRANS = words("zh-transport", "transport", {
@@ -67,7 +73,9 @@
     words: W([["car", "汽车", "qì chē", "🚗"], ["bus", "巴士", "bā shì", "🚌"], ["train", "火车", "huǒ chē", "🚆"], ["plane", "飞机", "fēi jī", "✈️"], ["ship", "船", "chuán", "🚢"], ["bike", "自行车", "zì xíng chē", "🚲"]]),
     items: ["car", "bus", "train", "plane", "ship", "bike"],
     check: [["bus", ["car", "bus", "ship"]], ["plane", ["plane", "train", "bike"]], ["ship", ["bus", "ship", "plane"]],
-            ["car", ["car", "bike", "train"]], ["train", ["ship", "train", "car"]], ["bike", ["plane", "bus", "bike"]]],
+            ["car", ["car", "bike", "train"]], ["train", ["ship", "train", "car"]], ["bike", ["plane", "bus", "bike"]],
+            ["bus", ["train", "bus", "bike"]], ["plane", ["car", "plane", "ship"]], ["ship", ["bike", "car", "ship"]],
+            ["car", ["ship", "plane", "car"]], ["train", ["bike", "train", "bus"]], ["bike", ["car", "train", "bike"]]],
     end: "说说你最喜欢的车吗？"
   });
 
@@ -80,8 +88,11 @@
     intro: [["我们来说一说。", "zh"], ["点一点，听一听。", "zh"]],
     lesson: { type: "tapAll", cls: "sentences wrap", items: SENT.map(function (x) { return { id: x[0], html: PIC[x[0]], zh: { zh: x[1], py: x[2] }, label: x[1], say: [[x[1], "zh"]] }; }) },
     check: [["apple", ["apple", "banana", "milk"], "我要苹果。", "wǒ yào píng guǒ."], ["train", ["bus", "train", "plane"], "这是火车。", "zhè shì huǒ chē."], ["blue", ["red", "blue", "yellow"], "我有一辆蓝车。", "wǒ yǒu yí liàng lán chē."],
-            ["milk", ["banana", "milk", "apple"], "我要牛奶。", "wǒ yào niú nǎi."], ["bus", ["plane", "train", "bus"], "这是巴士。", "zhè shì bā shì."], ["yellow", ["yellow", "green", "red"], "我有一辆黄车。", "wǒ yǒu yí liàng huáng chē."]].map(function (x) {
-      var s = [x[2], "zh"], key = { apple: "苹果。", train: "火车。", blue: "蓝色。", milk: "牛奶。", bus: "巴士。", yellow: "黄色。" }[x[0]];
+            ["milk", ["banana", "milk", "apple"], "我要牛奶。", "wǒ yào niú nǎi."], ["bus", ["plane", "train", "bus"], "这是巴士。", "zhè shì bā shì."], ["yellow", ["yellow", "green", "red"], "我有一辆黄车。", "wǒ yǒu yí liàng huáng chē."],
+            ["plane", ["plane", "bus", "train"], "这是飞机。", "zhè shì fēi jī."], ["red", ["red", "green", "blue"], "我有一辆红车。", "wǒ yǒu yí liàng hóng chē."],
+            ["green", ["yellow", "green", "blue"], "我有一辆绿车。", "wǒ yǒu yí liàng lǜ chē."], ["banana", ["banana", "apple", "milk"], "我要香蕉。", "wǒ yào xiāng jiāo."],
+            ["plane", ["train", "plane", "bus"], "这是飞机。", "zhè shì fēi jī."], ["banana", ["milk", "banana", "apple"], "我要香蕉。", "wǒ yào xiāng jiāo."]].map(function (x) {
+      var s = [x[2], "zh"], key = { apple: "苹果。", train: "火车。", blue: "蓝色。", milk: "牛奶。", bus: "巴士。", yellow: "黄色。", plane: "飞机。", red: "红色。", green: "绿色。", banana: "香蕉。" }[x[0]];
       return { answer: x[0], options: x[1], label: x[2], ask: x[2], askPy: x[3], optionHtml: function (k) { return PIC[k]; },
         prompt: [s, ["点一点。", "zh"]], hint: [[key, "zh"]], reveal: [["看，是这个。", "zh"], s, ["点一点。", "zh"]], yes: [["对了！", "zh"], s] };
     }),
@@ -109,18 +120,20 @@
   var CH1 = chars("zh-chars1", "认字 人 口 大 小 日 木", "purple", "大",
     [["人", "rén", "🧍", "一个人。"], ["口", "kǒu", "👄", "张开口。"], ["大", "dà", '<span class="sort-car big">' + Art.car("red") + '</span>', "大车。"], ["小", "xiǎo", '<span class="sort-car small">' + Art.car("blue") + '</span>', "小车。"],
      ["日", "rì", "☀️", "日，太阳。"], ["木", "mù", "🌳", "木，大树。"]],
-    [["大", ["大", "小", "人"]], ["人", ["口", "人", "大"]], ["小", ["人", "大", "小"]], ["日", ["日", "木", "口"]], ["木", ["人", "日", "木"]], ["口", ["木", "口", "小"]]]);
+    [["大", ["大", "小", "人"]], ["人", ["口", "人", "大"]], ["小", ["人", "大", "小"]], ["日", ["日", "木", "口"]], ["木", ["人", "日", "木"]], ["口", ["木", "口", "小"]],
+     ["大", ["日", "大", "木"]], ["人", ["小", "口", "人"]], ["小", ["木", "小", "日"]], ["日", ["人", "日", "小"]], ["木", ["口", "木", "大"]], ["口", ["大", "人", "口"]]]);
   var CH2 = chars("zh-chars2", "认字 上 下 车 山 水 火", "green", "车",
     [["上", "shàng", "🚗⬆️", "车开上山。"], ["下", "xià", "🚗⬇️", "车开下山。"], ["车", "chē", "🚗", "我的车。"], ["山", "shān", "⛰️", "高高的山。"],
      ["水", "shuǐ", "💧", "水，喝水。"], ["火", "huǒ", "🔥", "火，红红的火。"]],
-    [["车", ["车", "山", "上"]], ["上", ["下", "上", "车"]], ["山", ["车", "下", "山"]], ["水", ["水", "火", "山"]], ["火", ["上", "火", "水"]], ["下", ["下", "车", "火"]]]);
+    [["车", ["车", "山", "上"]], ["上", ["下", "上", "车"]], ["山", ["车", "下", "山"]], ["水", ["水", "火", "山"]], ["火", ["上", "火", "水"]], ["下", ["下", "车", "火"]],
+     ["车", ["火", "车", "水"]], ["上", ["山", "上", "火"]], ["山", ["水", "车", "山"]], ["水", ["下", "水", "上"]], ["火", ["山", "车", "火"]], ["下", ["火", "下", "山"]]]);
 
   /* 儿歌: a short car chant (spoken, not sung), tap each line; check = listen and match */
   var SONG = [["l1", "小汽车，嘀嘀嘀。", "xiǎo qì chē, dī dī dī.", "🚗"], ["l2", "开过来，开过去。", "kāi guò lái, kāi guò qù.", "🚗💨"], ["l3", "红灯停，绿灯行。", "hóng dēng tíng, lǜ dēng xíng.", "🚦"], ["l4", "小朋友，笑嘻嘻。", "xiǎo péng you, xiào xī xī.", "😄"]];
   var SOUND = { car: ["🚗", "嘀嘀嘀"], dog: ["🐶", "汪汪汪"], cat: ["🐱", "喵喵喵"] };
-  function lightQ(c, zh, py, rule) {
+  function lightQ(c, zh, py, rule, opts) {
     var q = "哪个是" + zh + "？";
-    return { answer: c, options: c === "red" ? ["green", "red", "yellow"] : ["green", "yellow", "red"], label: zh, ask: rule + q, askPy: py, optionHtml: function (k) { return Art.light(k); },
+    return { answer: c, options: opts || (c === "red" ? ["green", "red", "yellow"] : ["green", "yellow", "red"]), label: zh, ask: rule + q, askPy: py, optionHtml: function (k) { return Art.light(k); },
       prompt: [[rule, "zh"], [q, "zh"]], hint: [[{ red: "红色。", green: "绿色。", yellow: "黄色。" }[c], "zh"]], reveal: [["看，这是" + zh + "。", "zh"], ["点一点" + zh + "。", "zh"]], yes: [["对了！", "zh"], [rule, "zh"]] };
   }
   var FACE = { laugh: "😄", cry: "😢", sleep: "😴" }, VEH = { car: "🚗", bus: "🚌", plane: "✈️" };
@@ -142,7 +155,16 @@
       lightQ("green", "绿灯", "lǜ dēng xíng. nǎ ge shì lǜ dēng?", "绿灯行。"),
       pickQ("laugh", ["cry", "laugh", "sleep"], FACE, "小朋友，笑嘻嘻。", "谁在笑？", "xiǎo péng you, xiào xī xī. shéi zài xiào?", "笑", "笑嘻嘻。"),
       pickQ("car", ["bus", "plane", "car"], VEH, "小汽车，嘀嘀嘀。", "小汽车在哪里？", "xiǎo qì chē, dī dī dī. xiǎo qì chē zài nǎ lǐ?", "小汽车", "嘀嘀嘀。"),
-      lightQ("yellow", "黄灯", "huáng dēng. nǎ ge shì huáng dēng?", "黄灯。")
+      lightQ("yellow", "黄灯", "huáng dēng. nǎ ge shì huáng dēng?", "黄灯。"),
+      { answer: "car", options: ["car", "cat", "dog"], label: "嘀嘀嘀", ask: "小汽车怎么叫？", askPy: "xiǎo qì chē zěn me jiào?",
+        optionHtml: function (k) { return E(SOUND[k][0]) + '<span class="opt-word">' + SOUND[k][1] + '</span>'; },
+        prompt: [["小汽车怎么叫？", "zh"]], hint: [["嘀嘀嘀。", "zh"]],
+        reveal: [["看，小汽车嘀嘀嘀。", "zh"], ["点一点小汽车。", "zh"]], yes: [["对了！小汽车，嘀嘀嘀。", "zh"]] },
+      lightQ("red", "红灯", "hóng dēng tíng. nǎ ge shì hóng dēng?", "红灯停。", ["yellow", "green", "red"]),
+      lightQ("green", "绿灯", "lǜ dēng xíng. nǎ ge shì lǜ dēng?", "绿灯行。", ["red", "green", "yellow"]),
+      pickQ("laugh", ["laugh", "sleep", "cry"], FACE, "小朋友，笑嘻嘻。", "谁在笑？", "xiǎo péng you, xiào xī xī. shéi zài xiào?", "笑", "笑嘻嘻。"),
+      pickQ("car", ["car", "bus", "plane"], VEH, "小汽车，嘀嘀嘀。", "小汽车在哪里？", "xiǎo qì chē, dī dī dī. xiǎo qì chē zài nǎ lǐ?", "小汽车", "嘀嘀嘀。"),
+      lightQ("yellow", "黄灯", "huáng dēng. nǎ ge shì huáng dēng?", "黄灯。", ["yellow", "red", "green"])
     ],
     endLine: endLine("一起念儿歌吗？")
   });
