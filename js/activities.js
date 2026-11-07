@@ -125,6 +125,10 @@ var K1 = (function () {
   function topic(sid, tid) { var s = subject(sid); if (!s) return null; for (var i = 0; i < s.topics.length; i++) if (s.topics[i].id === tid) return s.topics[i]; return null; }
   function countLines(n) { return EN_NUM.slice(1, n + 1).map(function (x) { return [x, "en"]; }).concat([[EN_NUM[n] + " cars!", "en"]]); }
   var CHECK_N = 6; // drawn each run; the activity's check array is the full pool
+  function mulberry(seed) { // deterministic draws for tests (?seed=); same sequence every time
+    var s = seed >>> 0;
+    return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  }
   function shuffle(list, rnd) {
     var a = list.slice(), rand = rnd || Math.random, i, j, t;
     for (i = a.length - 1; i > 0; i--) {
@@ -138,6 +142,6 @@ var K1 = (function () {
     if (k > list.length) k = list.length;
     return shuffle(list, rnd).slice(0, k);
   }
-  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, SND: SND, P: P, pic: pic, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines, CHECK_N: CHECK_N, shuffle: shuffle, pick: pick };
+  return { ACTS: ACTS, SUBJECTS: SUBJECTS, UI: UI, SSS: SSS, SND: SND, P: P, pic: pic, PEOPLE: PEOPLE, subject: subject, topic: topic, ZH: ZH, EN_NUM: EN_NUM, countLines: countLines, CHECK_N: CHECK_N, shuffle: shuffle, pick: pick, mulberry: mulberry };
 })();
 if (typeof module !== "undefined") module.exports = K1;

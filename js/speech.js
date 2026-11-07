@@ -9,6 +9,7 @@
 var Speech = (function () {
   "use strict";
   var Q = location.search, TEST = /[?&]test=1/.test(Q), REAL = /[?&]real=1/.test(Q);
+  var NEVER = /[?&]audiofail=1/.test(Q); // test hook: clips never report ended (iPad stall)
   var RATE = (function () { var m = /[?&]cliprate=([0-9.]+)/.exec(Q); return m ? Math.min(4, +m[1]) : 0; })();
   var FILES = (typeof K1_AUDIO !== "undefined" && K1_AUDIO.files) || {};
   var has = "speechSynthesis" in window, voices = { en: null, zh: null }, token = 0, keep = null, timer = null, el = null, unlocked = false;
@@ -49,7 +50,10 @@ var Speech = (function () {
   }
   function tts(text, lang, my, next) {
     stats.tts++;
-    if (TEST || !has) { timer = setTimeout(function () { if (my === token) next(); }, TEST ? LINE_MS : 400 + text.length * 60); return; }
+    if (TEST || !has) {
+      if (TEST && LINE_MS === 0) { if (my === token) next(); return; } // walkthroughs: finish the chain in this turn
+      timer = setTimeout(function () { if (my === token) next(); }, TEST ? LINE_MS : 400 + text.length * 60); return;
+    }
     var finished = false; function fin() { if (finished) return; finished = true; clearTimeout(timer); setTimeout(function () { if (my === token) next(); }, 250); }
     // letter sounds with no clip yet: a spelling the device voice says close to the sound (not the letter name)
     if (lang === "snd") text = SND_SAY[text] || text;
@@ -65,9 +69,17 @@ var Speech = (function () {
     var done = false, dog = null;
     function fin(why) { if (done) return; done = true; clearTimeout(dog); el.onended = el.onerror = el.onloadedmetadata = null; if (my === token) setTimeout(next, RATE ? 20 : 150); }
     function fallback() { if (done) return; done = true; clearTimeout(dog); stats.fallbacks++; if (my === token) tts(text, lang, my, next); }
+    // Cap the stall watchdog. A bad duration (some iPad files report a huge length) must not
+    // replace the short watchdog with a multi-minute wait, or the game never moves on.
+    var CLIP_CAP = 12000;
     function arm(ms) { clearTimeout(dog); dog = setTimeout(function () { try { el.pause(); } catch (e) {} fin("stalled"); }, ms); }
-    arm(15000);
-    el.onloadedmetadata = function () { if (isFinite(el.duration) && el.duration > 0) arm(el.duration / (el.playbackRate || 1) * 1000 + 2500); };
+    arm(CLIP_CAP);
+    el.onloadedmetadata = function () {
+      if (isFinite(el.duration) && el.duration > 0) {
+        var ms = el.duration / (el.playbackRate || 1) * 1000 + 2500;
+        arm(Math.min(Math.max(ms, 800), CLIP_CAP));
+      }
+    };
     el.onended = function () { stats.clipsEnded++; fin("end"); };
     el.onerror = fallback;
     el.src = src;
@@ -88,6 +100,7 @@ var Speech = (function () {
       var L = lines[i++], text = L[0], lang = L[1] || "en", src = clipFor(text, lang);
       said.push({ text: text, lang: lang, src: src });
       var cap = document.getElementById("caption"); if (cap) cap.textContent = text;
+      if (NEVER) return; // leave this chain unfinished; the screen unlocks on its own timeout
       if (src && (!TEST || REAL)) clip(src, text, lang, my, next); else tts(text, lang, my, next);
     }
     next();
