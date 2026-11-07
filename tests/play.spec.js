@@ -52,7 +52,7 @@ test("a run shows 6 flags from a pool of at least 12, and a second open can diff
     if (!first) first = seq;
     else if (first.join("\n") !== seq.join("\n") && first[0] !== seq[0]) second = seq;
     tries++;
-    if (testInfo.project.name === "chromium" && (first === seq || second === seq)) {
+    if (testInfo.project.name === "chromium-1180" && (first === seq || second === seq)) {
       await page.locator(".options.ready").waitFor();
       fs.mkdirSync("/opt/cursor/artifacts", { recursive: true });
       var name = first === seq && !second ? "colours-run-1.png" : "colours-run-2.png";

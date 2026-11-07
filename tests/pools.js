@@ -112,6 +112,41 @@ var fixed = K1.shuffle(m5.items, mulberry(3));
 assert(m5.items.map(function (it) { return it.id; }).join(",") === "p0,p1,p2,p3", "shuffle must copy, not reorder the lesson");
 assert(fixed.map(function (it) { return it.id; }).join(",").split(",").sort().join(",") === "p0,p1,p2,p3", "shuffled copy keeps every item");
 
+var LESSON_TYPES = { tapAll: 1, countRounds: 1, drivePast: 1, park: 1, compare: 1, sort: 1, oneMore: 1 };
+Object.keys(K1.ACTS).forEach(function (id) {
+  var a = K1.ACTS[id];
+  if (a.book) return;
+  assert(a.lesson && LESSON_TYPES[a.lesson.type], id + " lesson type " + (a.lesson && a.lesson.type) + " has no player");
+  (a.check || []).forEach(function (c, i) {
+    c.options.forEach(function (o) {
+      var html = "";
+      try { html = c.optionHtml(o); } catch (e) { assert(false, id + " q" + i + " option " + o + " threw " + e.message); return; }
+      assert(typeof html === "string" && html.length > 0, id + " q" + i + " option " + o + " drew nothing");
+    });
+  });
+});
+K1.ACTS["m5-pattern"].check.forEach(function (c, i) {
+  var row = c.scene.row, expect = row.length % 2 === 0 ? row[0] : row[1];
+  assert(c.answer === expect, "pattern q" + i + " next should be " + expect + " for " + row.join("-"));
+});
+K1.ACTS["m3-more"].check.forEach(function (c, i) {
+  var more = c.ask.indexOf("more") >= 0, L = c.parks.L, R = c.parks.R;
+  assert(L !== R, "more/fewer q" + i + " has equal parks");
+  assert(c.answer === ((more ? L > R : L < R) ? "L" : "R"), "more/fewer q" + i + " winner");
+});
+K1.ACTS["m7-onemore"].check.forEach(function (c, i) {
+  assert(c.scene && c.scene.type === "oneMore" && String(c.scene.n + 1) === c.answer, "one more q" + i + " answer");
+  assert(c.n === c.scene.n + 1, "one more q" + i + " shows the new total");
+});
+K1.ACTS["m7-onemore"].lesson.rounds.forEach(function (r, i) {
+  assert(r.n >= 1 && r.nums.length === r.n + 1, "one more lesson round " + i + " counts every car including the new one");
+});
+K1.ACTS["m4-sort"].lesson.phases.forEach(function (p, i) {
+  p.cars.forEach(function (c) { assert(p.garages.indexOf(c) >= 0, "sort phase " + i + " car " + c + " has no garage"); });
+});
+var sameSeed = K1.pick(K1.ACTS["en-s"].check, 6, K1.mulberry(7)).map(sig).join("\n");
+assert(sameSeed === K1.pick(K1.ACTS["en-s"].check, 6, K1.mulberry(7)).map(sig).join("\n"), "a seed draws the same six twice");
+
 var uniqMissing = missing.filter(function (x, i) { return missing.indexOf(x) === i; });
 assert(uniqMissing.length === 0, "spoken lines missing from the manifest:\n" + uniqMissing.join("\n"));
 

@@ -49,6 +49,7 @@
     $("homeBtn").hidden = id === "home" || id === "gate" || id === "parent" || id === "who" || id === "newplayer";
     $("crumbs").innerHTML = (crumbs || []).map(esc).join(' <span class="sep">›</span> ');
     if (id !== "play") $("caption").textContent = "";
+    syncKeep();
   }
 
   /* ---------- Level 1: main menu ---------- */
@@ -123,62 +124,131 @@
   function startPlay(id) {
     var a = A[id]; if (!a || a.book) { location.hash = "#subjects"; return; }
     var s = K1.subject(a.subject), t = K1.topic(a.subject, a.topic);
-    play = { id: id, a: a, phase: "lesson", item: 0, miss: 0, results: [], started: true, busy: false, lessonBusy: false };
+    play = { id: id, a: a, phase: "lesson", item: 0, miss: 0, results: [], started: true, busy: false, lessonBusy: false, lessonLocked: false, lockSeq: 0, stepSeq: 0, promptSeq: 0, lockFallbacks: 0 };
     K1Store.addTry(id); // count an attempt when the activity opens (not on remount of same play)
     show("play", [s.name, t.name, a.title], null);
     renderLesson();
   }
   function stage(html, cls) { var st = $("stage"); st.className = cls || ""; st.innerHTML = html; screenBusyUntil = 0; return st; }
 
+  /* Lesson taps wait until the instruction has finished (same rule as the car-game answers).
+     The timeout is the safety net when a clip never reports ended. */
+  function setLessonLock(on) {
+    if (play) play.lessonLocked = !!on;
+    document.body.classList.toggle("lesson-locked", !!on);
+    var nc = $("newCar"); if (nc) nc.classList.toggle("ready-tap", !on);
+  }
+  function bumpSeqs() {
+    if (!play) return;
+    play.stepSeq = (play.stepSeq || 0) + 1;
+    play.promptSeq = (play.promptSeq || 0) + 1;
+    play.lockSeq = (play.lockSeq || 0) + 1;
+  }
+  function sayPrompt(lines, then) {
+    if (!play) return;
+    var P = play, seq = ++P.promptSeq, done = false;
+    setLessonLock(true);
+    var t = setTimeout(function () { if (play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }, maxMs(lines));
+    function fin() {
+      if (done || play !== P || seq !== P.promptSeq) return;
+      done = true; clearTimeout(t); setLessonLock(false); if (then) then();
+    }
+    Speech.say(lines || [], fin, { force: true });
+  }
+  /* Speech.say drops the callback when another line is still playing. Anything that must
+     move the lesson forward uses this instead, so a dropped or stalled line still continues. */
+  function afterSpeech(lines, cb, opts) {
+    if (!play) { if (cb) cb(); return; }
+    var P = play, seq = ++P.stepSeq, done = false;
+    var t = setTimeout(function () { if (play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }, maxMs(lines));
+    function fin() {
+      if (done || play !== P || seq !== P.stepSeq) return;
+      done = true; clearTimeout(t); if (cb) cb();
+    }
+    var ok = Speech.say(lines || [], fin, opts || { force: true });
+    if (ok === false) { P.lockFallbacks = (P.lockFallbacks || 0) + 1; fin(); }
+  }
+  function syncKeep() {
+    var b = $("keepBtn"); if (!b) return;
+    b.hidden = !(play && (play.phase === "lesson" || play.phase === "check") && document.body.getAttribute("data-screen") === "play");
+  }
+  function keepGoing() {
+    if (!play || (play.phase !== "lesson" && play.phase !== "check")) return;
+    bumpSeqs(); Speech.stop();
+    play.lessonBusy = false; play.sortBusy = false; play.locked = false; play.busy = false; play.moved = false;
+    setLessonLock(false);
+    if (play.phase === "check") {
+      var it = play.checks && play.checks[play.item];
+      if (it && play.results.length === play.item) play.results.push({ label: it.label, result: "kept" });
+      play.advancing = false; nextItem(); return;
+    }
+    if (document.querySelector("#stage .to-check")) { startCheck(); return; }
+    if (document.querySelector("#stage .next-round") && play.onNext) { play.onNext(); return; }
+    if (play.onAdvance) play.onAdvance(); else readyFlag();
+  }
+  tap($("keepBtn"), function () { keepGoing(); });
+
   function renderLesson() {
     var a = play.a, L = a.lesson;
-    play.phase = "lesson"; setHear(a.intro);
-    if (L.type === "tapAll") {
-      var head = a.head || '';
-      // pictures shuffle each open; a fixed row (the AB pattern) stays in teaching order
-      var items = (L.fixed || L.row) ? L.items.slice() : K1.shuffle(L.items);
-      play.lessonItems = items;
-      var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : items.length > 4 ? ' six' : '') + '">' + items.map(function (it) {
-        return '<button type="button" class="lesson-item" data-item="' + it.id + '">' + it.html + '<span class="li-label">' + (it.zh ? zhText(it.zh) : esc(it.label)) + '</span></button>'; }).join("") +
-        '</div><div class="ready-row"></div>', "lesson tapall");
-      var seen = {};
-      [].forEach.call(st.querySelectorAll(".lesson-item"), function (b) {
-        tap(b, function () {
-          var it = L.items.filter(function (x) { return x.id === b.getAttribute("data-item"); })[0];
-          // spam on the same picture while it is speaking is ignored; a new picture may interrupt
-          if (seen[it.id] && play.lessonBusy) return;
-          var wasNew = !seen[it.id];
-          b.classList.add("seen"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); seen[it.id] = 1;
-          play.lessonBusy = true;
-          Speech.say(it.say, function () {
-            play.lessonBusy = false;
-            if (Object.keys(seen).length === L.items.length) readyFlag();
-          }, wasNew ? { force: true } : null);
-        });
+    play.phase = "lesson"; play.onAdvance = null; play.onNext = null; setHear(a.intro); syncKeep();
+    if (!L) { stage('<div class="ready-row"></div>', "lesson"); readyFlag(); return; }
+    if (L.type === "tapAll") { drawTapAll(); sayPrompt(a.intro); return; }
+    if (L.type === "countRounds") { play.round = 0; drawRound(); sayPrompt(a.intro); return; }
+    if (Lessons[L.type]) { play.round = 0; Lessons[L.type](); if (L.type === "drivePast") sayPrompt(a.intro); return; }
+    stage('<div class="ready-row"></div>', "lesson"); readyFlag();
+  }
+  function drawTapAll() {
+    var L = play.a.lesson, head = play.a.head || "";
+    // pictures shuffle each open; a fixed row (the AB pattern) stays in teaching order
+    var items = (L.fixed || L.row) ? L.items.slice() : K1.shuffle(L.items);
+    play.lessonItems = items;
+    var st = stage(head + '<div class="truck' + (L.row ? ' row' : '') + (L.cls ? ' ' + L.cls : items.length > 4 ? ' six' : '') + '">' + items.map(function (it) {
+      return '<button type="button" class="lesson-item" data-item="' + it.id + '">' + it.html + '<span class="li-label">' + (it.zh ? zhText(it.zh) : esc(it.label)) + '</span></button>'; }).join("") +
+      '</div><div class="ready-row"></div>', "lesson tapall");
+    var seen = {};
+    play.onAdvance = function () {
+      [].forEach.call(document.querySelectorAll("#stage .lesson-item"), function (b) { b.classList.add("seen"); });
+      L.items.forEach(function (it) { seen[it.id] = 1; });
+      play.lessonBusy = false; readyFlag();
+    };
+    [].forEach.call(st.querySelectorAll(".lesson-item"), function (b) {
+      tap(b, function () {
+        var it = L.items.filter(function (x) { return x.id === b.getAttribute("data-item"); })[0];
+        if (!play || play.lessonLocked || !it) return;
+        // spam on the same picture while it is speaking is ignored; a new picture may interrupt
+        if (seen[it.id] && play.lessonBusy) return;
+        var wasNew = !seen[it.id];
+        b.classList.add("seen"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); seen[it.id] = 1;
+        play.lessonBusy = true;
+        afterSpeech(it.say, function () {
+          play.lessonBusy = false;
+          if (Object.keys(seen).length === L.items.length) readyFlag();
+        }, wasNew ? { force: true } : null);
       });
-    } else if (L.type === "countRounds") {
-      play.round = 0; drawRound();
-    } else if (Lessons[L.type]) { play.round = 0; Lessons[L.type](); if (L.type !== "drivePast") return; }
-    Speech.say(a.intro, null, { force: true });
+    });
   }
   function drawRound() {
-    var a = play.a, L = a.lesson, n = L.rounds[play.round], c = 0;
+    var L = play.a.lesson, n = L.rounds[play.round], c = 0;
     var st = stage('<div class="carpark">' + range(n).map(function (i) { return '<button type="button" class="park-car" data-i="' + i + '">' + Art.car(L.colors[i % L.colors.length]) + '<span class="count-tag"></span></button>'; }).join("") +
       '</div><div class="count-big" id="countBig"></div><div class="ready-row"></div>', "lesson count");
+    play.onAdvance = function () {
+      [].forEach.call(document.querySelectorAll("#stage .park-car"), function (b, idx) {
+        b.classList.add("seen"); var tag = b.querySelector(".count-tag"); if (tag) tag.textContent = idx + 1;
+      });
+      c = n; var big = $("countBig"); if (big) big.textContent = n;
+      play.lessonBusy = false;
+      nextOrReady(null, function () { drawRound(); sayPrompt(K1.UI.tapEachCar); });
+    };
     [].forEach.call(st.querySelectorAll(".park-car"), function (b) {
       tap(b, function () {
-        if (b.classList.contains("seen") || play.lessonBusy) return;
+        if (!play || play.lessonLocked || b.classList.contains("seen") || play.lessonBusy) return;
         c++; b.classList.add("seen"); b.querySelector(".count-tag").textContent = c;
         var done = c === n; play.lessonBusy = true;
-        Speech.say([[K1.EN_NUM[c], "en"]].concat(done ? [[K1.EN_NUM[n] + " cars!", "en"]] : []), function () {
+        afterSpeech([[K1.EN_NUM[c], "en"]].concat(done ? [[K1.EN_NUM[n] + " cars!", "en"]] : []), function () {
           play.lessonBusy = false;
           if (!done) return;
           $("countBig").textContent = n;
-          if (play.round < L.rounds.length - 1) {
-            var nx = document.createElement("button"); nx.type = "button"; nx.className = "big go next-round"; nx.innerHTML = '<span class="ico">➡️</span><span>More cars</span>';
-            tap(nx, function () { if (play.lessonBusy) return; play.round++; drawRound(); Speech.say(K1.UI.tapEachCar, null, { force: true }); }, { nav: true });
-            document.querySelector("#stage .ready-row").appendChild(nx);
-          } else readyFlag();
+          nextOrReady(null, function () { drawRound(); sayPrompt(K1.UI.tapEachCar); });
         }, { force: true });
       });
     });
@@ -198,11 +268,15 @@
   /* ---------- maths lesson types (data in js/maths.js) ---------- */
   function rowReady() { return document.querySelector("#stage .ready-row"); }
   function nextOrReady(more, redraw) {
+    if (!play || play.phase !== "lesson") return;
+    if (document.querySelector("#stage .next-round, #stage .to-check")) return;
     var L = play.a.lesson;
     if (play.round < L.rounds.length - 1) {
+      play.onNext = function () { play.onNext = null; play.round++; redraw(); };
+      var row = rowReady(); if (!row) return;
       var nx = document.createElement("button"); nx.type = "button"; nx.className = "big go next-round"; nx.innerHTML = '<span class="ico">➡️</span><span>More cars</span>';
-      tap(nx, function () { play.round++; redraw(true); }, { nav: true }); rowReady().appendChild(nx);
-      if (more) Speech.say(more);
+      tap(nx, function () { if (play.onNext) play.onNext(); }, { nav: true }); row.appendChild(nx);
+      if (more) Speech.say(more, null, { force: true });
     } else readyFlag();
   }
   var Lessons = {
@@ -212,87 +286,141 @@
       var st = stage('<div class="road-row lane">' + range(total).map(function (i) { return '<button type="button" class="row-car slot" data-i="' + i + '" style="visibility:hidden">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '<span class="count-tag"></span></button>'; }).join("") +
         '</div><div class="ready-row"></div>', "lesson drive");
       var slots = [].slice.call(st.querySelectorAll(".slot"));
-      function arrive() { var b = slots[k]; b.style.visibility = "visible"; b.classList.add("drive-in", "next"); }
+      function arrive() { if (k >= total) return; var b = slots[k]; b.style.visibility = "visible"; b.classList.add("drive-in", "next"); }
+      function fillRest() {
+        while (k < total) {
+          var b = slots[k]; b.style.visibility = "visible"; b.classList.add("seen"); b.classList.remove("next");
+          b.querySelector(".count-tag").textContent = R.from + k; k++;
+        }
+      }
+      play.onAdvance = function () { fillRest(); play.lessonBusy = false; nextOrReady(L.more, function () { draw(true); }); };
       slots.forEach(function (b, i) { tap(b, function () {
-        if (i !== k || b.classList.contains("seen") || play.lessonBusy) return;
+        if (!play || play.lessonLocked || i !== k || b.classList.contains("seen") || play.lessonBusy) return;
         b.classList.add("seen"); b.classList.remove("next"); b.querySelector(".count-tag").textContent = R.from + i; k++;
         var last = k === total; play.lessonBusy = true;
-        Speech.say([R.nums[i]].concat(last ? R.end : []), function () { play.lessonBusy = false; if (last) nextOrReady(L.more, draw); }, { force: true });
+        afterSpeech([R.nums[i]].concat(last ? R.end : []), function () { play.lessonBusy = false; if (last) nextOrReady(L.more, function () { draw(true); }); }, { force: true });
         if (!last) setTimeout(arrive, Speech.test ? 0 : 350);
       }); });
-      arrive(); if (again) Speech.say(K1.UI.tapEachCar, null, { force: true });
+      arrive(); if (again) sayPrompt(K1.UI.tapEachCar);
     },
     // tap waiting cars to park them in the numbered bay, until the bay is full
     park: function draw(again) {
       var L = play.a.lesson, R = L.rounds[play.round], c = 0;
       var st = stage('<div class="bay-wrap"><div class="bay-sign">' + R.n + '</div><div class="bay" id="bay"></div></div>' +
         '<div class="waiting">' + range(10).map(function (i) { return '<button type="button" class="wait-car" data-i="' + i + '">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</button>'; }).join("") + '</div><div class="ready-row"></div>', "lesson park");
+      play.onAdvance = function () {
+        var waits = [].slice.call(document.querySelectorAll("#stage .wait-car")), wi = 0;
+        while (c < R.n) {
+          var b = waits[wi++]; var m = document.createElement("span"); m.className = "mini parked";
+          m.innerHTML = b ? b.innerHTML : Art.car("red"); $("bay").appendChild(m); if (b) b.style.visibility = "hidden"; c++;
+        }
+        play.lessonBusy = false; nextOrReady(null, function () { draw(true); });
+      };
       [].forEach.call(st.querySelectorAll(".wait-car"), function (b) { tap(b, function () {
-        if (play.lessonBusy) return;
-        if (c >= R.n) { Speech.say(L.full, null, { force: true }); return; }
+        if (!play || play.lessonLocked || play.lessonBusy) return;
+        if (c >= R.n) { afterSpeech(L.full, null, { force: true }); return; }
         c++; var m = document.createElement("span"); m.className = "mini parked"; m.innerHTML = b.innerHTML; $("bay").appendChild(m); b.style.visibility = "hidden";
         var full = c === R.n; play.lessonBusy = true;
-        Speech.say([R.nums[c - 1]].concat(full ? R.end : []), function () { play.lessonBusy = false; if (full) nextOrReady(null, draw); }, { force: true });
+        afterSpeech([R.nums[c - 1]].concat(full ? R.end : []), function () { play.lessonBusy = false; if (full) nextOrReady(null, function () { draw(true); }); }, { force: true });
       }); });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
+      sayPrompt(again ? R.start : play.a.intro.concat(R.start));
     },
     // two car parks: tap each to count, then the one with more (or fewer) glows
     compare: function draw(again) {
       var L = play.a.lesson, R = L.rounds[play.round], seen = {};
       var st = stage('<p class="ask small-ask">' + esc(R.start[0][0]) + '</p><div class="options wide">' +
         '<button type="button" class="option park-pick" data-side="L">' + Art.group(R.a, "blue") + '</button><button type="button" class="option park-pick" data-side="R">' + Art.group(R.b, "red") + '</button></div><div class="ready-row"></div>', "lesson compare");
+      function showWin() {
+        play.lessonBusy = true;
+        var w = st.querySelector('[data-side="' + R.win + '"]'); if (w) w.classList.add("yes");
+        afterSpeech(R.end, function () {
+          play.lessonBusy = false;
+          nextOrReady(L.next, function () { draw(true); });
+        }, { force: true });
+      }
+      play.onAdvance = function () {
+        seen.L = seen.R = 1; play.lessonBusy = false;
+        var w = document.querySelector('#stage [data-side="' + R.win + '"]'); if (w) w.classList.add("yes");
+        nextOrReady(L.next, function () { draw(true); });
+      };
       [].forEach.call(st.querySelectorAll(".park-pick"), function (b) { tap(b, function () {
+        if (!play || play.lessonLocked || play.lessonBusy) return;
         var side = b.getAttribute("data-side"); seen[side] = 1; b.classList.add("seen-park");
-        var both = seen.L && seen.R;
-        Speech.say(side === "L" ? R.sayA : R.sayB, function () {
+        var both = seen.L && seen.R; play.lessonBusy = true;
+        afterSpeech(side === "L" ? R.sayA : R.sayB, function () {
+          play.lessonBusy = false;
           if (!both || st.querySelector(".yes")) return;
-          st.querySelector('[data-side="' + R.win + '"]').classList.add("yes");
-          Speech.say(R.end, function () { nextOrReady(L.next, draw); });
-        });
+          showWin();
+        }, { force: true });
       }); });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
+      sayPrompt(again ? R.start : play.a.intro.concat(R.start));
     },
     // one car at a time: tap the garage it belongs in (a wrong tap just gets a friendly correction)
     sort: function () {
       var L = play.a.lesson, ph = 0, i = 0;
+      function goOn() {
+        if (i < L.phases[ph].cars.length) { showCar(); sayPrompt(L.where); }
+        else if (ph < L.phases.length - 1) { ph++; i = 0; drawPhase(); sayPrompt(L.phases[ph].start.concat(L.where)); }
+        else { var s = $("sortShow"); if (s) s.innerHTML = ""; readyFlag(); }
+      }
+      function showCar() {
+        var P = L.phases[ph], el = $("sortShow"); if (!el) return;
+        el.innerHTML = K1.carOf(P.cars[i]); el.setAttribute("data-want", P.cars[i]);
+      }
       function drawPhase() {
         var P = L.phases[ph];
         var st = stage('<div class="sort-show" id="sortShow"></div><div class="options">' + P.garages.map(function (g) { return '<button type="button" class="option garage-pick" data-g="' + g + '">' + Art.garage(g) + '<span class="opt-word">' + g + '</span></button>'; }).join("") +
           '</div><div class="ready-row"></div>', "lesson sort");
-        function show() { $("sortShow").innerHTML = K1.carOf(P.cars[i]); $("sortShow").setAttribute("data-want", P.cars[i]); }
+        play.onAdvance = function () { play.sortBusy = false; i++; goOn(); };
         [].forEach.call(st.querySelectorAll(".garage-pick"), function (b) { tap(b, function () {
-          if (play.sortBusy) return;
+          if (!play || play.lessonLocked || play.sortBusy) return;
           var want = P.cars[i], g = b.getAttribute("data-g");
           [].forEach.call(st.querySelectorAll(".garage-pick"), function (x) { x.classList.remove("hint"); });
-          if (g !== want) { st.querySelector('[data-g="' + want + '"]').classList.add("hint"); Speech.say(L.say[want].wrong); return; }
+          if (g !== want) { var hint = st.querySelector('[data-g="' + want + '"]'); if (hint) hint.classList.add("hint"); afterSpeech(L.say[want].wrong, null, { force: true }); return; }
           play.sortBusy = true; b.classList.add("yes");
-          Speech.say(L.say[want].right, function () {
-            play.sortBusy = false; b.classList.remove("yes"); i++;
-            if (i < P.cars.length) { show(); Speech.say(L.where); }
-            else if (ph < L.phases.length - 1) { ph++; i = 0; drawPhase(); Speech.say(L.phases[ph].start.concat(L.where)); }
-            else { $("sortShow").innerHTML = ""; readyFlag(); }
-          });
+          afterSpeech(L.say[want].right, function () {
+            play.sortBusy = false; b.classList.remove("yes"); i++; goOn();
+          }, { force: true });
         }); });
-        show();
+        showCar();
       }
-      drawPhase(); Speech.say(play.a.intro.concat(L.phases[0].start, L.where), null, { force: true });
+      drawPhase(); sayPrompt(play.a.intro.concat(L.phases[0].start, L.where));
     },
-    // n cars parked; tap the new car, it drives in, the cars are counted: "Now n+1 cars!"
+    // n cars parked; the new car stays on the road until the instruction ends, then one tap drives it in.
+    // A tap during the instruction used to hide the car and drop the counting line (Speech.say ignored
+    // while the intro was still playing), so the round never finished and there was nothing left to tap.
     oneMore: function draw(again) {
-      var L = play.a.lesson, R = L.rounds[play.round]; play.moved = false;
-      var st = stage('<div class="carpark onemore">' + range(R.n).map(function (i) { return '<span class="park-car">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</span>'; }).join("") +
-        '<span class="park-car empty" id="emptyBay"></span></div><div class="waiting one"><button type="button" class="wait-car new" id="newCar">' + Art.car("purple") + '</button></div><div class="ready-row"></div>', "lesson onemore");
+      var L = play.a.lesson, R = L.rounds[play.round]; play.moved = false; play.lessonBusy = false;
+      var st = stage('<div class="onemore-wrap"><div class="carpark onemore">' + range(R.n).map(function (i) { return '<span class="park-car">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</span>'; }).join("") +
+        '<span class="park-car empty" id="emptyBay"></span></div><div class="newcar-lane waiting one"><p class="hint-word">New car</p><button type="button" class="wait-car new" id="newCar" aria-label="New car">' + Art.car("purple") + '</button></div><div class="ready-row"></div></div>', "lesson onemore");
+      function takeNewCar() {
+        var e = $("emptyBay"); if (!e) return;
+        e.classList.remove("empty"); e.classList.add("drive-in"); e.innerHTML = Art.car("purple");
+        var nc = $("newCar"); if (nc) { nc.classList.add("gone"); nc.style.visibility = "hidden"; }
+        var hint = document.querySelector("#stage .hint-word"); if (hint) hint.hidden = true;
+      }
+      function finishRound() {
+        play.lessonBusy = false; play.moved = false;
+        nextOrReady(null, function () { draw(true); });
+      }
+      play.onAdvance = function () {
+        takeNewCar();
+        [].forEach.call(document.querySelectorAll("#stage .carpark .park-car"), function (c) { c.classList.add("seen"); });
+        finishRound();
+      };
       tap($("newCar"), function () {
-        if (play.moved) return; play.moved = true;
-        var e = $("emptyBay"); e.classList.remove("empty"); e.classList.add("drive-in"); e.innerHTML = Art.car("purple"); $("newCar").style.visibility = "hidden";
+        if (!play || play.lessonLocked || play.lessonBusy || play.moved) return;
+        play.moved = true; play.lessonBusy = true;
+        takeNewCar();
         var cs = [].slice.call(st.querySelectorAll(".carpark .park-car")), i = 0;
-        Speech.say([R.nums[0]], function step() {
-          cs[i] && cs[i].classList.add("seen"); i++;
-          if (i < R.nums.length) Speech.say([R.nums[i]], step);
-          else Speech.say(R.end, function () { play.moved = false; nextOrReady(null, draw); });
-        });
+        function step() {
+          if (i > 0 && cs[i - 1]) cs[i - 1].classList.add("seen");
+          if (i < R.nums.length) { var line = [R.nums[i]]; i++; afterSpeech(line, step, { force: true }); }
+          else afterSpeech(R.end, finishRound, { force: true });
+        }
+        step();
       });
-      Speech.say(again ? R.start : play.a.intro.concat(R.start), null, { force: true });
+      sayPrompt(again ? R.start : play.a.intro.concat(R.start));
     }
   };
 
@@ -309,6 +437,7 @@
      brighten when he may tap. No timer is shown. If the audio never reports its end, a fallback unlocks after a sensible maximum. */
   var Q = location.search;
   var PAUSE = (function () { var m = /[?&]pause=(\d+)/.exec(Q); return m ? +m[1] : 1500; })(); // calm pause after a wrong tap
+  var seedM = /[?&]seed=(\d+)/.exec(Q); // tests: same seed draws the same 6 questions
   function maxMs(lines) { // generous upper bound for how long the lines can take to say (iPad voice is slower than the clips)
     var ms = 2500; (lines || []).forEach(function (l) { ms += 700 + String(l[0]).length * (l[1] === "zh" ? 380 : 120); });
     var m = /[?&]maxlock=(\d+)/.exec(Q); return m ? +m[1] : Math.min(ms, 25000);
@@ -327,12 +456,13 @@
     Speech.say(lines, fin, { force: true });
   }
   function startCheck() {
-    play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0;
-    play.checks = K1.pick(play.a.check, K1.CHECK_N); // 6 of the pool, no repeats this run
-    drawItem();
+    play.phase = "check"; play.item = 0; play.results = []; play.lockSeq = 0; play.advancing = false;
+    play.onAdvance = null; play.onNext = null; play.lessonBusy = false; setLessonLock(false);
+    play.checks = K1.pick(play.a.check, K1.CHECK_N, seedM ? K1.mulberry(+seedM[1]) : undefined); // 6 of the pool, no repeats this run
+    syncKeep(); drawItem();
   }
   function drawItem() {
-    var a = play.a, it = play.checks[play.item]; play.miss = 0; play.busy = false; play.reveal = false;
+    var a = play.a, it = play.checks[play.item]; play.miss = 0; play.busy = false; play.reveal = false; play.advancing = false;
     var promptHtml = a.lang === "zh" ? zhText({ zh: it.ask, py: it.askPy }) : esc(it.ask);
     var scene = it.scene ? sceneHtml(it.scene) : it.n ? '<div class="carpark small">' + range(it.n).map(function (i) { return '<button type="button" class="park-car" data-i="' + i + '">' + Art.car(["red", "blue", "yellow", "green", "orange"][i % 5]) + '</button>'; }).join("") + '</div>' : '';
     var st = stage('<div class="flags">' + play.checks.map(function (_, i) { return '<span class="flag' + (i < play.item ? " done" : i === play.item ? " now" : "") + '">🚩</span>'; }).join("") + '</div>' +
@@ -345,16 +475,17 @@
     sayLocked(it.prompt);
   }
   function choose(b) {
-    if (play.busy || play.locked) return; // locked while the question or a replay is being said
+    if (!play || play.busy || play.locked || play.advancing) return; // locked while the question or a replay is being said
     var it = play.checks[play.item], o = b.getAttribute("data-opt"), right = o === it.answer;
     var opts = [].slice.call(document.querySelectorAll("#stage .option")), rightBtn = opts.filter(function (x) { return x.getAttribute("data-opt") === it.answer; })[0];
+    if (!rightBtn) return; // no matching card: Keep going is the way forward, never a dead tap
     if (play.reveal && !right) return; // after the answer is shown only the answer can be tapped
     if (right) {
       play.busy = true; b.classList.remove("hint"); b.classList.add("yes");
       play.results.push({ label: it.label, result: play.reveal ? "shown" : play.miss ? "hint" : "first" });
-      var P = play, went = false; // move on when "Yes!" ends, or after a fallback if the audio never reports its end
-      var go = function () { if (went || play !== P || P.phase !== "check") return; went = true; setTimeout(function () { if (play === P && P.phase === "check") nextItem(); }, Speech.test ? 10 : 400); };
-      Speech.say(it.yes, go, { force: true }); setTimeout(function () { if (!went && play === P) P.lockFallbacks = (P.lockFallbacks || 0) + 1; go(); }, maxMs(it.yes));
+      var P = play, itemAt = P.item, went = false; // move on when "Yes!" ends, or after a fallback if the audio never reports its end
+      var go = function () { if (went || play !== P || P.phase !== "check" || P.item !== itemAt) return; went = true; setTimeout(function () { if (play === P && P.phase === "check" && P.item === itemAt) nextItem(); }, Speech.test ? 0 : 400); };
+      Speech.say(it.yes, go, { force: true }); setTimeout(function () { if (!went && play === P && P.item === itemAt) { P.lockFallbacks = (P.lockFallbacks || 0) + 1; go(); } }, maxMs(it.yes));
       return;
     }
     play.miss++;
@@ -391,6 +522,8 @@
     }, { force: true });
   }
   function nextItem() {
+    if (!play || play.phase !== "check" || play.advancing) return;
+    play.advancing = true;
     play.item++;
     if (play.item < play.checks.length) drawItem(); else finishActivity();
   }
@@ -552,7 +685,10 @@
         return "<li" + (count[a] ? "" : ' class="not"') + ">" + esc(A[a].title) + (count[a] ? " ✅" + (count[a] > 1 ? " ×" + count[a] : "") : " – not yet") + "</li>"; }).join("") + "</ul>";
       box.appendChild(d);
     });
-    var help = {}; rows.forEach(function (r) { (r.items || []).forEach(function (x) { if (x.result === "first") return; var k = r.title; help[k] = help[k] || { hint: {}, shown: {} }; help[k][x.result][x.label] = 1; }); });
+    var help = {}; rows.forEach(function (r) { (r.items || []).forEach(function (x) {
+      if (x.result !== "hint" && x.result !== "shown") return; // "kept" (Keep going) is not a miss
+      var k = r.title; help[k] = help[k] || { hint: {}, shown: {} }; help[k][x.result][x.label] = 1;
+    }); });
     var hk = Object.keys(help);
     var h = document.createElement("div"); h.className = "pcard wide"; h.id = "helpCard";
     h.innerHTML = "<h4>Stickers: " + total + " · Last played: " + esc(rows.length ? K1Store.pretty(rows[0].at) : "not yet") + " (Singapore time)</h4>" +
@@ -615,6 +751,7 @@
   window.addEventListener("hashchange", route);
   // coming back from the picture book (browser Back): ask whether the story was finished
   window.addEventListener("pageshow", function () { if (bookReturn()) { if (location.hash !== "#bookdone") location.hash = "#bookdone"; else route(); } });
+  if (Speech.test) document.body.classList.add("k1-test");
   K1Store.migrate();
   if (bookReturn()) location.hash = "#bookdone";
   else if (!location.hash || location.hash === "#home") location.hash = "#who";

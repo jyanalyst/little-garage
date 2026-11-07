@@ -14,7 +14,9 @@ module.exports = defineConfig({
     reuseExistingServer: true
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1180, height: 820 } } },
-    { name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1180, height: 820 } } }
+    { name: "chromium-1180", use: { ...devices["Desktop Chrome"], viewport: { width: 1180, height: 820 }, hasTouch: true } },
+    { name: "chromium-1024", use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 768 }, hasTouch: true } },
+    { name: "webkit-1180", use: { ...devices["Desktop Safari"], viewport: { width: 1180, height: 820 }, hasTouch: true } },
+    { name: "webkit-1024", use: { ...devices["Desktop Safari"], viewport: { width: 1024, height: 768 }, hasTouch: true } }
   ]
 });
